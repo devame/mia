@@ -1,0 +1,20 @@
+with t1(firm, off, acct) as (values
+( 'A', '***', '*****'),
+( 'A', 'AA1', '*****'),
+( 'A', 'AA1', 'A1B12')
+),
+
+t2(firm, off, acct) as (values
+( 'A', 'AB1', 'ABCDEF'),
+( 'A', 'AA1', 'ABCDEF'),
+( 'A', 'AA1', 'A1B12')
+)
+
+select max(t1.firm ||' ' || t1.off || ' ' || t1.acct) as matched_value,
+           t2.firm ||' ' || t2.off || ' ' || t2.acct as input_value
+  from t1,t2
+ where t1.acct in (t2.acct, '*****')
+   and t1.off in (t2.off, '***')
+   and t1.firm = t2.firm
+ group by
+       t2.firm ||' ' || t2.off || ' ' || t2.acct 
