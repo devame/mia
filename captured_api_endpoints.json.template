@@ -1,0 +1,29 @@
+{
+  "json_api": {
+    "url": "http://www.dce.com.cn/dceg/api/YOUR_JSON_ENDPOINT_HERE",
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json",
+      "Cookie": "PASTE_YOUR_COOKIES_HERE",
+      "Referer": "http://www.dce.com.cn/dceg/channel/list/471.html",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Authorization": "Bearer YOUR_TOKEN_IF_NEEDED"
+    },
+    "params": {
+      "date": "2025-11-18",
+      "type": "settlement"
+    },
+    "body": {}
+  },
+  "txt_conversion": {
+    "url": "http://www.dce.com.cn/dceg/api/YOUR_EXPORT_ENDPOINT_HERE",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "Cookie": "PASTE_YOUR_COOKIES_HERE",
+      "Referer": "http://www.dce.com.cn/dceg/channel/list/471.html",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    },
+    "note": "This endpoint receives the JSON data and returns a .txt file"
+  }
+}
