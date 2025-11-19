@@ -25,7 +25,7 @@ exchange_name,iso_code,country,base_url,calendar_url,calendar_url_pattern
 "Athens Exchange (ATHEX) Derivatives",XATH,Greece,https://www.athexgroup.gr,https://www.athexgroup.gr/en/trading-calendar,https://www.athexgroup.gr/en/trading-calendar
 "Moscow Exchange (MOEX)",MISX,Russia,https://www.moex.com,https://www.moex.com/en/tradingcalendar,https://www.moex.com/en/tradingcalendar
 "Borsa Istanbul VIOP",XIST,Turkey,https://www.borsaistanbul.com,https://www.borsaistanbul.com/en/sayfa/452/trading-calendar,https://www.borsaistanbul.com/en/sayfa/452/trading-calendar
-"Singapore Exchange (SGX)",XSES,Singapore,https://www.sgx.com,https://data.gov.sg/datasets/d_3751791452397f1b1c80c451447e40b7/view,http://www.mom.gov.sg/employment-practices/public-holidays
+"Singapore Exchange (SGX)",XSES,Singapore,https://www.sgx.com,http://www.mom.gov.sg/employment-practices/public-holidays,http://www.mom.gov.sg/employment-practices/public-holidays
 "Hong Kong Exchanges and Clearing (HKEX)",XHKG,Hong Kong,https://www.hkex.com.hk,https://www.hkex.com.hk/Services/Trading/Derivatives/Overview/Trading-Calendar-and-Holiday-Schedule?sc_lang=en,https://www.hkex.com.hk/-/media/HKEX-Market/Mutual-Market/Stock-Connect/Reference-Materials/Trading-Hour,-Trading-and-Settlement-Calendar/{year}-Calendar_pdf_e.pdf
 "Japan Exchange Group (JPX/TSE)",XJPX,Japan,https://www.jpx.co.jp,https://www.jpx.co.jp/english/corporate/about-jpx/calendar/index.html,https://www.jpx.co.jp/english/corporate/about-jpx/calendar/index.html
 "Osaka Exchange (OSE)",XOSE,Japan,https://www.jpx.co.jp,https://www.jpx.co.jp/english/derivatives/rules/holidaytrading/index.html,https://www.jpx.co.jp/english/derivatives/rules/holidaytrading/index.html

@@ -28,6 +28,11 @@ class HolidayScraper:
         self.timeout = timeout
         self.retry_attempts = retry_attempts
         self.session = requests.Session()
+
+        # Initialize exchange-specific extractors
+        # Import here to avoid circular dependency
+        from extractors import ExchangeExtractors
+        self.extractors = ExchangeExtractors(self)
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
@@ -301,6 +306,15 @@ class HolidayScraper:
         Returns:
             List of holiday dictionaries
         """
+        # Check if there's a custom extractor for this exchange
+        if self.extractors.has_extractor(iso_code):
+            print(f"[INFO] Using custom extractor for {iso_code}")
+            extractor_func = self.extractors.get_extractor(iso_code)
+            return extractor_func(url, iso_code)
+
+        # Fall back to generic extraction
+        print(f"[WARN] No custom extractor for {iso_code}, using generic parser")
+
         # Determine file type
         if url.lower().endswith('.pdf'):
             return self.extract_holidays_from_pdf(url, iso_code)
