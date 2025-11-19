@@ -4,7 +4,7 @@ A comprehensive Python system for tracking and synchronizing holiday calendars f
 
 ## Features
 
-- **Global Exchange Coverage**: Tracks 14+ major derivative exchanges worldwide including CME, ICE, Eurex, SGX, HKEX, JPX, and more
+- **Global Exchange Coverage**: Tracks 50+ derivative exchanges worldwide across North America, Latin America, Europe, Asia-Pacific, Middle East, and Africa
 - **Automated Scraping**: Extracts holiday data from various formats (HTML, PDF, tables)
 - **Intelligent URL Discovery**: Automatically finds alternative calendar URLs when primary URLs fail
 - **Change Tracking**: Maintains complete audit trail of all changes to holiday data
@@ -186,24 +186,85 @@ python sync_holidays.py --exchanges XCME IFUS --verbose --no-email
 
 ## Supported Exchanges
 
-The system currently includes the following derivative exchanges:
+The system currently includes 50+ derivative exchanges worldwide:
 
-| Exchange Name | ISO Code | Country | Specialization |
-|--------------|----------|---------|----------------|
-| CME Group | XCME | USA | Futures & Options (Financial, Commodities, Energy) |
-| ICE Futures U.S. | IFUS | USA | Energy, Agriculture |
-| ICE Futures Europe | IFEU | UK | Oil, Soft Commodities |
-| Eurex | XEUR | Germany | European Derivatives |
-| Singapore Exchange | XSES | Singapore | Asian Derivatives |
-| Hong Kong Exchange | XHKG | Hong Kong | Asian Equity Derivatives |
-| Japan Exchange Group | XJPX | Japan | Japanese Derivatives |
-| Osaka Exchange | XOSE | Japan | Japanese Derivatives |
-| B3 | BVMF | Brazil | Brazilian Derivatives |
-| Australian Securities Exchange | XASX | Australia | Australian Derivatives |
-| Cboe Global Markets | XCBO | USA | Options, Volatility Products |
-| Korea Exchange | XKRX | South Korea | Korean Derivatives |
-| London Metal Exchange | XLME | UK | Metals |
-| National Stock Exchange of India | XNSE | India | Indian Derivatives |
+### North America (5 exchanges)
+| Exchange Name | ISO Code | Country |
+|--------------|----------|---------|
+| CME Group (Chicago Mercantile Exchange) | XCME | United States |
+| ICE Futures U.S. | IFUS | United States |
+| Cboe Global Markets | XCBO | United States |
+| Nasdaq Futures (NFX) | IFNY | United States |
+| Montreal Exchange (TMX) | XMOD | Canada |
+
+### Latin America (2 exchanges)
+| Exchange Name | ISO Code | Country |
+|--------------|----------|---------|
+| B3 (Brasil Bolsa Balcao) | BVMF | Brazil |
+| MexDer (Mexican Derivatives Exchange) | MEXD | Mexico |
+
+### Europe (18 exchanges)
+| Exchange Name | ISO Code | Country |
+|--------------|----------|---------|
+| Eurex (Eurex Deutschland) | XEUR | Germany |
+| ICE Futures Europe | IFEU | United Kingdom |
+| London Metal Exchange (LME) | XLME | United Kingdom |
+| Euronext Paris | XPAR | France |
+| Euronext Amsterdam | XAMS | Netherlands |
+| Euronext Brussels | XBRU | Belgium |
+| Euronext Lisbon | XLIS | Portugal |
+| Euronext Dublin | XDUB | Ireland |
+| Euronext Milan (Borsa Italiana) | XMIL | Italy |
+| Euronext Oslo | XOSL | Norway |
+| BME Spanish Exchanges | XMCE | Spain |
+| SIX Swiss Exchange | XSWX | Switzerland |
+| European Energy Exchange (EEX) | XEEE | Germany |
+| Nasdaq Commodities (formerly Nasdaq Oslo) | XNDE | Norway |
+| ICE Endex | NDEX | Netherlands |
+| Budapest Stock Exchange (BSE) | XBUD | Hungary |
+| Warsaw Stock Exchange (GPW) | XWAR | Poland |
+| Athens Exchange (ATHEX) Derivatives | XATH | Greece |
+| Moscow Exchange (MOEX) | MISX | Russia |
+| Borsa Istanbul VIOP | XIST | Turkey |
+
+### Asia-Pacific (17 exchanges)
+| Exchange Name | ISO Code | Country |
+|--------------|----------|---------|
+| Singapore Exchange (SGX) | XSES | Singapore |
+| Hong Kong Exchanges and Clearing (HKEX) | XHKG | Hong Kong |
+| Japan Exchange Group (JPX/TSE) | XJPX | Japan |
+| Osaka Exchange (OSE) | XOSE | Japan |
+| Shanghai Futures Exchange (SHFE) | XSGE | China |
+| Dalian Commodity Exchange (DCE) | XDCE | China |
+| Zhengzhou Commodity Exchange (ZCE) | XZCE | China |
+| China Financial Futures Exchange (CFFEX) | CCFX | China |
+| Korea Exchange (KRX) | XKRX | South Korea |
+| Taiwan Futures Exchange (TAIFEX) | XTAF | Taiwan |
+| National Stock Exchange of India (NSE) | XNSE | India |
+| BSE India (Bombay Stock Exchange) | XBOM | India |
+| Multi Commodity Exchange of India (MCX) | MCXI | India |
+| Australian Securities Exchange (ASX) | XASX | Australia |
+| New Zealand Exchange (NZX) | XNZE | New Zealand |
+| Indonesia Commodity & Derivatives Exchange (ICDX) | IDXC | Indonesia |
+| Thailand Futures Exchange (TFEX) | XTFX | Thailand |
+| Bursa Malaysia Derivatives | XKLS | Malaysia |
+| Philippine Stock Exchange (PSE) | XPHS | Philippines |
+| Hanoi Stock Exchange (HNX) - Vietnam Derivatives | XHNX | Vietnam |
+| Pakistan Mercantile Exchange (PMEX) | XPAK | Pakistan |
+
+### Middle East (3 exchanges)
+| Exchange Name | ISO Code | Country |
+|--------------|----------|---------|
+| Gulf Mercantile Exchange (GME) / Dubai Mercantile Exchange | XDME | United Arab Emirates |
+| Saudi Exchange (Tadawul) | XSAU | Saudi Arabia |
+| Tel Aviv Stock Exchange (TASE) | XTAE | Israel |
+
+### Africa (1 exchange)
+| Exchange Name | ISO Code | Country |
+|--------------|----------|---------|
+| Johannesburg Stock Exchange (JSE) | XJSE | South Africa |
+
+**Total: 50+ derivative and futures exchanges globally**
 
 ## How It Works
 
@@ -360,6 +421,14 @@ mia/
 4. **SQL Injection**: All queries use parameterized statements
 
 ## Version History
+
+- **v1.1.0** (2025-01-19): Expanded coverage
+  - 50+ exchanges supported worldwide
+  - Added comprehensive regional coverage (North America, Latin America, Europe, Asia-Pacific, Middle East, Africa)
+  - Includes all Chinese commodity exchanges (SHFE, DCE, ZCE, CFFEX)
+  - Added all Euronext exchanges (Paris, Amsterdam, Brussels, Lisbon, Dublin, Milan, Oslo)
+  - Added energy exchanges (EEX, Nasdaq Commodities, ICE Endex)
+  - Added emerging market exchanges (PMEX Pakistan, TFEX Thailand, PSE Philippines, HNX Vietnam, ICDX Indonesia)
 
 - **v1.0.0** (2025-01-19): Initial release
   - 14 exchanges supported
