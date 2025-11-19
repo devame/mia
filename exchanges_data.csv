@@ -1,13 +1,12 @@
 exchange_name,iso_code,country,base_url,calendar_url,calendar_url_pattern
 "CME Group (Chicago Mercantile Exchange)",XCME,United States,https://www.cmegroup.com,https://www.cmegroup.com/trading-hours.html,https://www.cmegroup.com/trading-hours.html
-"ICE Futures U.S.",IFUS,United States,https://www.ice.com,https://www.ice.com/publicdocs/clear_us/notices/24-078_2025_Clearing_Holiday_Calendar.pdf,https://www.ice.com/publicdocs/clear_us/notices/{year}_Clearing_Holiday_Calendar.pdf
+"ICE Futures U.S.",IFUS,United States,https://www.ice.com,https://www.ice.com/publicdocs/Trading_Schedule.pdf,https://www.ice.com/publicdocs/Trading_Schedule.pdf
 "ICE Futures Europe",IFEU,United Kingdom,https://www.ice.com,https://www.ice.com/publicdocs/Trading_Schedule.pdf,https://www.ice.com/publicdocs/Trading_Schedule.pdf
-"Cboe Global Markets",XCBO,United States,https://www.cboe.com,https://www.cboe.com/us/options/notices/schedule_update/,https://www.cboe.com/us/options/notices/schedule_update/
-"Nasdaq Futures (NFX)",IFNY,United States,https://www.nasdaq.com,https://www.nasdaq.com/solutions/nasdaq-futures,https://www.nasdaq.com/solutions/nasdaq-futures
+"Cboe Global Markets",XCBO,United States,https://www.cboe.com,https://www.cboe.com/us/futures/market_statistics/holiday_calendar/,https://www.cboe.com/us/futures/market_statistics/holiday_calendar/
 "Montreal Exchange (TMX)",XMOD,Canada,https://www.m-x.ca,https://www.m-x.ca/en/trading/calendar,https://www.m-x.ca/en/trading/calendar
 "B3 (Brasil Bolsa Balcao)",BVMF,Brazil,https://www.b3.com.br,https://www.b3.com.br/en_us/solutions/platforms/puma-trading-system/for-members-and-traders/trading-calendar/holidays/,https://www.b3.com.br/en_us/solutions/platforms/puma-trading-system/for-members-and-traders/trading-calendar/holidays/
-"MexDer (Mexican Derivatives Exchange)",MEXD,Mexico,https://www.bmv.com.mx,https://www.bmv.com.mx/en/Grupo_BMV/Mercado_de_Derivados_MexDer,https://www.bmv.com.mx/en/Grupo_BMV/Mercado_de_Derivados_MexDer
-"Eurex (Eurex Deutschland)",XEUR,Germany,https://www.eurex.com,https://www.eurex.com/ex-en/trade/trading-calendar/holiday-regulations,https://www.eurex.com/resource/blob/4242284/1c8da6dc2702d508ee2a4740654ea77d/data/tradingcalendar_{year}_en.pdf
+"MexDer (Mexican Derivatives Exchange)",MEXD,Mexico,https://www.bmv.com.mx,https://www.bmv.com.mx/en/Grupo_BMV,https://www.bmv.com.mx/en/Grupo_BMV
+"Eurex (Eurex Deutschland)",XEUR,Germany,https://www.eurex.com,https://www.eurex.com/ex-en/trade/trading-calendar,https://www.eurex.com/resource/blob/4242284/1c8da6dc2702d508ee2a4740654ea77d/data/tradingcalendar_{year}_en.pdf
 "London Metal Exchange (LME)",XLME,United Kingdom,https://www.lme.com,https://www.lme.com/en/Trading/Trading-information/Trading-calendar,https://www.lme.com/en/Trading/Trading-information/Trading-calendar
 "Euronext Paris",XPAR,France,https://www.euronext.com,https://www.euronext.com/en/trade/trading-calendar,https://www.euronext.com/en/trade/trading-calendar
 "Euronext Amsterdam",XAMS,Netherlands,https://www.euronext.com,https://www.euronext.com/en/trade/trading-calendar,https://www.euronext.com/en/trade/trading-calendar
@@ -16,38 +15,38 @@ exchange_name,iso_code,country,base_url,calendar_url,calendar_url_pattern
 "Euronext Dublin",XDUB,Ireland,https://www.euronext.com,https://www.euronext.com/en/trade/trading-calendar,https://www.euronext.com/en/trade/trading-calendar
 "Euronext Milan (Borsa Italiana)",XMIL,Italy,https://www.euronext.com,https://www.euronext.com/en/trade/trading-calendar,https://www.euronext.com/en/trade/trading-calendar
 "Euronext Oslo",XOSL,Norway,https://www.euronext.com,https://www.euronext.com/en/trade/trading-calendar,https://www.euronext.com/en/trade/trading-calendar
-"BME Spanish Exchanges",XMCE,Spain,https://www.bolsasymercados.es,https://www.bolsasymercados.es/bme-exchange/en/Trading/Calendar,https://www.bolsasymercados.es/bme-exchange/en/Trading/Calendar
+"BME Spanish Exchanges",XMCE,Spain,https://www.bolsasymercados.es,https://www.bolsasymercados.es/bme-exchange/en/Trading,https://www.bolsasymercados.es/bme-exchange/en/Trading
 "SIX Swiss Exchange",XSWX,Switzerland,https://www.six-group.com,https://www.six-group.com/en/products-services/the-swiss-stock-exchange/trading/trading-calendar.html,https://www.six-group.com/en/products-services/the-swiss-stock-exchange/trading/trading-calendar.html
 "European Energy Exchange (EEX)",XEEE,Germany,https://www.eex.com,https://www.eex.com/en/about/services/trading-calendar,https://www.eex.com/en/about/services/trading-calendar
-"Nasdaq Commodities (formerly Nasdaq Oslo)",XNDE,Norway,https://www.nasdaq.com,https://www.nasdaq.com/solutions/nordic-european-power,https://www.nasdaq.com/solutions/nordic-european-power
+"Nasdaq Commodities",XNDE,Norway,https://www.nasdaq.com,https://www.nasdaq.com/solutions/nordic-european-power,https://www.nasdaq.com/solutions/nordic-european-power
 "ICE Endex",NDEX,Netherlands,https://www.ice.com,https://www.ice.com/index,https://www.ice.com/index
 "Budapest Stock Exchange (BSE)",XBUD,Hungary,https://www.bse.hu,https://www.bse.hu/pages/trading-calendar,https://www.bse.hu/pages/trading-calendar
 "Warsaw Stock Exchange (GPW)",XWAR,Poland,https://www.gpw.pl,https://www.gpw.pl/en-trading-calendar,https://www.gpw.pl/en-trading-calendar
 "Athens Exchange (ATHEX) Derivatives",XATH,Greece,https://www.athexgroup.gr,https://www.athexgroup.gr/en/trading-calendar,https://www.athexgroup.gr/en/trading-calendar
 "Moscow Exchange (MOEX)",MISX,Russia,https://www.moex.com,https://www.moex.com/en/tradingcalendar,https://www.moex.com/en/tradingcalendar
-"Borsa Istanbul VIOP",XIST,Turkey,https://www.borsaistanbul.com,https://www.borsaistanbul.com/en/sayfa/2964/trading-calendar,https://www.borsaistanbul.com/en/sayfa/2964/trading-calendar
-"Singapore Exchange (SGX)",XSES,Singapore,https://www.sgx.com,https://www.sgx.com/securities/trading-hours-calendar,https://www.sgx.com/securities/trading-hours-calendar
+"Borsa Istanbul VIOP",XIST,Turkey,https://www.borsaistanbul.com,https://www.borsaistanbul.com/en/sayfa/452/trading-calendar,https://www.borsaistanbul.com/en/sayfa/452/trading-calendar
+"Singapore Exchange (SGX)",XSES,Singapore,https://www.sgx.com,https://www.sgx.com,https://www.sgx.com
 "Hong Kong Exchanges and Clearing (HKEX)",XHKG,Hong Kong,https://www.hkex.com.hk,https://www.hkex.com.hk/Services/Trading/Derivatives/Overview/Trading-Calendar-and-Holiday-Schedule?sc_lang=en,https://www.hkex.com.hk/-/media/HKEX-Market/Mutual-Market/Stock-Connect/Reference-Materials/Trading-Hour,-Trading-and-Settlement-Calendar/{year}-Calendar_pdf_e.pdf
-"Japan Exchange Group (JPX/TSE)",XJPX,Japan,https://www.jpx.co.jp,https://www.jpx.co.jp/english/corporate/about-jpx/calendar/,https://www.jpx.co.jp/english/corporate/about-jpx/calendar/
+"Japan Exchange Group (JPX/TSE)",XJPX,Japan,https://www.jpx.co.jp,https://www.jpx.co.jp/english/corporate/about-jpx/calendar/index.html,https://www.jpx.co.jp/english/corporate/about-jpx/calendar/index.html
 "Osaka Exchange (OSE)",XOSE,Japan,https://www.jpx.co.jp,https://www.jpx.co.jp/english/derivatives/rules/holidaytrading/index.html,https://www.jpx.co.jp/english/derivatives/rules/holidaytrading/index.html
 "Shanghai Futures Exchange (SHFE)",XSGE,China,https://www.shfe.com.cn,https://www.shfe.com.cn/bourseService/businessdata/calendar/,https://www.shfe.com.cn/bourseService/businessdata/calendar/
-"Dalian Commodity Exchange (DCE)",XDCE,China,http://www.dce.com.cn,http://www.dce.com.cn/DCE/TradeClearing/Exchange%20Notice/index.html,http://www.dce.com.cn/DCE/TradeClearing/Exchange%20Notice/index.html
-"Zhengzhou Commodity Exchange (ZCE)",XZCE,China,http://www.czce.com.cn,http://www.czce.com.cn/cn/jystz/jysrli.htm,http://www.czce.com.cn/cn/jystz/jysrli.htm
+"Dalian Commodity Exchange (DCE)",XDCE,China,http://www.dce.com.cn,http://www.dce.com.cn/DCE/,http://www.dce.com.cn/DCE/
+"Zhengzhou Commodity Exchange (ZCE)",XZCE,China,http://www.czce.com.cn,http://www.czce.com.cn,http://www.czce.com.cn
 "China Financial Futures Exchange (CFFEX)",CCFX,China,http://www.cffex.com.cn,http://www.cffex.com.cn/en_new/OverviewNew.html,http://www.cffex.com.cn/en_new/OverviewNew.html
-"Korea Exchange (KRX)",XKRX,South Korea,https://global.krx.co.kr,https://global.krx.co.kr/main/main.jsp,https://global.krx.co.kr/main/main.jsp
-"Taiwan Futures Exchange (TAIFEX)",XTAF,Taiwan,https://www.taifex.com.tw,https://www.taifex.com.tw/enl/eng3/totalTableDate,https://www.taifex.com.tw/enl/eng3/totalTableDate
-"National Stock Exchange of India (NSE)",XNSE,India,https://www.nseindia.com,https://www.nseindia.com/regulations/trading-holidays,https://www.nseindia.com/regulations/trading-holidays
-"BSE India (Bombay Stock Exchange)",XBOM,India,https://www.bseindia.com,https://www.bseindia.com/static/about/introduction.aspx,https://www.bseindia.com/static/about/introduction.aspx
-"Multi Commodity Exchange of India (MCX)",MCXI,India,https://www.mcxindia.com,https://www.mcxindia.com/market-data/holiday-master,https://www.mcxindia.com/market-data/holiday-master
-"Australian Securities Exchange (ASX)",XASX,Australia,https://www.asx.com.au,https://www.asx.com.au/markets/market-resources/trading-hours-calendar/cash-market-trading-hours,https://www.asx.com.au/markets/market-resources/trading-hours-calendar/cash-market-trading-hours
-"New Zealand Exchange (NZX)",XNZE,New Zealand,https://www.nzx.com,https://www.nzx.com/markets/NZCX/market-information,https://www.nzx.com/markets/NZCX/market-information
-"Indonesia Commodity & Derivatives Exchange (ICDX)",IDXC,Indonesia,https://www.icdx.co.id,https://www.icdx.co.id/about-us,https://www.icdx.co.id/about-us
-"Thailand Futures Exchange (TFEX)",XTFX,Thailand,https://www.set.or.th,https://www.set.or.th/en/products/tfex/market_info/calendar_p1.html,https://www.set.or.th/en/products/tfex/market_info/calendar_p1.html
-"Bursa Malaysia Derivatives",XKLS,Malaysia,https://www.bursamalaysia.com,https://www.bursamalaysia.com/trade/trading_resources/calendars/trading_holiday,https://www.bursamalaysia.com/trade/trading_resources/calendars/trading_holiday
-"Philippine Stock Exchange (PSE)",XPHS,Philippines,https://www.pse.com.ph,https://www.pse.com.ph/stockMarket/calendar.html,https://www.pse.com.ph/stockMarket/calendar.html
+"Korea Exchange (KRX)",XKRX,South Korea,https://global.krx.co.kr,https://global.krx.co.kr/contents/GLB/05/0501/0501110000/GLB0501110000.jsp,https://global.krx.co.kr/contents/GLB/05/0501/0501110000/GLB0501110000.jsp
+"Taiwan Futures Exchange (TAIFEX)",XTAF,Taiwan,https://www.taifex.com.tw,https://www.taifex.com.tw/enl/eng4/calendar,https://www.taifex.com.tw/file/taifex/eng/eng11/TAIFEX Holiday Schedule {year}.pdf
+"National Stock Exchange of India (NSE)",XNSE,India,https://www.nseindia.com,https://www.nseindia.com/holidays-for-the-calendar-year-2025,https://www.nseindia.com/holidays-for-the-calendar-year-{year}
+"BSE India (Bombay Stock Exchange)",XBOM,India,https://www.bseindia.com,https://www.bseindia.com/static/markets/marketinfo/listholi.aspx,https://www.bseindia.com/static/markets/marketinfo/listholi.aspx
+"Multi Commodity Exchange of India (MCX)",MCXI,India,https://www.mcxindia.com,https://www.mcxindia.com/market-operations/trading-survelliance/trading-holidays,https://www.mcxindia.com/market-operations/trading-survelliance/trading-holidays
+"Australian Securities Exchange (ASX)",XASX,Australia,https://www.asx.com.au,https://www.asx.com.au/markets/market-resources/trading-hours-calendar,https://www.asx.com.au/content/dam/asx/markets/market-resources/t24-trading-calendars/T24-trading-calendar{year}.pdf
+"New Zealand Exchange (NZX)",XNZE,New Zealand,https://www.nzx.com,https://www.nzx.com/markets/NZCX,https://www.nzx.com/markets/NZCX
+"Indonesia Commodity & Derivatives Exchange (ICDX)",IDXC,Indonesia,https://www.icdx.co.id,https://www.icdx.co.id,https://www.icdx.co.id
+"Thailand Futures Exchange (TFEX)",XTFX,Thailand,https://www.set.or.th,https://www.set.or.th/en,https://www.set.or.th/en
+"Bursa Malaysia Derivatives",XKLS,Malaysia,https://www.bursamalaysia.com,https://www.bursamalaysia.com/trade/trading_resources/calendars,https://www.bursamalaysia.com/trade/trading_resources/calendars
+"Philippine Stock Exchange (PSE)",XPHS,Philippines,https://www.pse.com.ph,https://www.pse.com.ph,https://www.pse.com.ph
 "Hanoi Stock Exchange (HNX) - Vietnam Derivatives",XHNX,Vietnam,https://www.hnx.vn,https://www.hnx.vn/en-gb/,https://www.hnx.vn/en-gb/
-"Pakistan Mercantile Exchange (PMEX)",XPAK,Pakistan,https://www.pmex.com.pk,https://www.pmex.com.pk/market-information.php,https://www.pmex.com.pk/market-information.php
-"Gulf Mercantile Exchange (GME) / Dubai Mercantile Exchange",XDME,United Arab Emirates,https://www.gulfmerc.com,https://www.gulfmerc.com/trading-calendar,https://www.gulfmerc.com/trading-calendar
-"Saudi Exchange (Tadawul)",XSAU,Saudi Arabia,https://www.saudiexchange.sa,https://www.saudiexchange.sa/wps/portal/saudiexchange/trading/market-operations/trading-calendar,https://www.saudiexchange.sa/wps/portal/saudiexchange/trading/market-operations/trading-calendar
-"Tel Aviv Stock Exchange (TASE)",XTAE,Israel,https://www.tase.co.il,https://www.tase.co.il/en/trading_and_clearing/calendar,https://www.tase.co.il/en/trading_and_clearing/calendar
-"Johannesburg Stock Exchange (JSE)",XJSE,South Africa,https://www.jse.co.za,https://www.jse.co.za/trade/exchange-traded-derivative-market,https://www.jse.co.za/trade/exchange-traded-derivative-market
+"Pakistan Mercantile Exchange (PMEX)",XPAK,Pakistan,https://www.pmex.com.pk,https://www.pmex.com.pk,https://www.pmex.com.pk
+"Gulf Mercantile Exchange (GME)",XDME,United Arab Emirates,https://www.gulfmerc.com,https://www.gulfmerc.com,https://www.gulfmerc.com
+"Saudi Exchange (Tadawul)",XSAU,Saudi Arabia,https://www.saudiexchange.sa,https://www.saudiexchange.sa,https://www.saudiexchange.sa
+"Tel Aviv Stock Exchange (TASE)",XTAE,Israel,https://www.tase.co.il,https://www.tase.co.il/en,https://www.tase.co.il/en
+"Johannesburg Stock Exchange (JSE)",XJSE,South Africa,https://www.jse.co.za,https://www.jse.co.za,https://www.jse.co.za
