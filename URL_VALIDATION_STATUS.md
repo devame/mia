@@ -6,13 +6,13 @@ This document reflects a comprehensive deep investigation following the "ULTRATH
 
 ## Validation Status
 
-- **✅ FULLY VERIFIED**: 48 exchanges (92%)
-- **⚠️ PARTIAL**: 3 exchanges (6%)
+- **✅ FULLY VERIFIED**: 50 exchanges (96%)
+- **⚠️ PARTIAL**: 1 exchange (2%)
 - **❓ UNVERIFIED**: 1 exchange (2%)
 
 ---
 
-## ✅ FULLY VERIFIED EXCHANGES (48)
+## ✅ FULLY VERIFIED EXCHANGES (50)
 
 ### North America (5/5)
 | Exchange | ISO | Verified URL |
@@ -28,15 +28,17 @@ This document reflects a comprehensive deep investigation following the "ULTRATH
 | B3 Brasil | BVMF | https://www.b3.com.br/en_us/.../trading-calendar/holidays/ |
 | MexDer | MEXD | https://www.bmv.com.mx/en/Grupo_BMV |
 
-### Europe (19/20)
-| Exchange | ISO | Verified URL |
-|----------|-----|--------------|
+### Europe (20/20) - 100% ✅
+| Exchange | ISO | Verified URL | Discovery Method |
+|----------|-----|--------------|------------------|
 | Eurex | XEUR | https://www.eurex.com/ex-en/trade/trading-calendar |
 | LME | XLME | https://www.lme.com/en/Trading/Trading-information/Trading-calendar |
 | All 7 Euronext | XPAR/XAMS/XBRU/XLIS/XDUB/XMIL/XOSL | https://www.euronext.com/en/trade/trading-calendar |
 | BME Spanish | XMCE | https://www.bolsasymercados.es/bme-exchange/en/Trading |
 | SIX Swiss | XSWX | https://www.six-group.com/.../trading-calendar.html |
 | EEX | XEEE | https://www.eex.com/en/about/services/trading-calendar |
+| **Nasdaq Commodities** | XNDE | https://www.nasdaq.com/docs/.../Holiday-Calendar-Commodities-Markets.pdf | ✨ Found PDF via direct search |
+| **ICE Endex** | NDEX | https://www.ice.com/publicdocs/ICE_Endex_Trading_Schedule.pdf | ✨ Found PDF via direct search |
 | Budapest BSE | XBUD | https://www.bse.hu/pages/trading-calendar |
 | Warsaw GPW | XWAR | https://www.gpw.pl/en-trading-calendar |
 | Athens ATHEX | XATH | https://www.athexgroup.gr/en/trading-calendar |
@@ -77,13 +79,13 @@ This document reflects a comprehensive deep investigation following the "ULTRATH
 
 ---
 
-## ⚠️ PARTIAL VERIFICATION (3)
+## ⚠️ PARTIAL VERIFICATION (1)
 
 | Exchange | ISO | Status | Notes |
 |----------|-----|--------|-------|
-| Nasdaq Commodities | XNDE | ⚠️ PARTIAL | Nordic power page, may not have dedicated calendar |
-| ICE Endex | NDEX | ⚠️ PARTIAL | Using ICE index page, specific calendar not found |
 | CFFEX China | CCFX | ⚠️ PARTIAL | English overview page, calendar section unclear |
+
+**Note**: Nasdaq Commodities and ICE Endex have been moved to FULLY VERIFIED with PDF calendar URLs.
 
 ---
 
@@ -157,11 +159,11 @@ Every exchange has a specific holiday calendar page:
 |--------|-------|----------|------------|
 | North America | 5 | 5 | 100% |
 | Latin America | 2 | 2 | 100% |
-| Europe | 20 | 19 | 95% |
+| Europe | 20 | 20 | 100% |
 | Asia-Pacific | 21 | 19 | 90% |
 | Middle East | 3 | 2 | 67% |
 | Africa | 1 | 1 | 100% |
-| **TOTAL** | **52** | **48** | **92%** |
+| **TOTAL** | **52** | **50** | **96%** |
 
 ---
 
@@ -198,16 +200,22 @@ python sync_holidays.py --exchanges XDME --verbose
 
 ## Next Steps
 
-1. **Test All Verified URLs** - Run scraper against all 48 verified exchanges
+1. **Test All Verified URLs** - Run scraper against all 50 verified exchanges
 2. **Refine Scraping Logic** - Some pages may need exchange-specific parsers
-3. **Add PDF Support** - Install `pdfplumber` for exchanges with PDF calendars
+3. **Test PDF Parsing** - Verify PDF extraction works for Nasdaq Commodities, ICE Endex
 4. **Implement Caching** - Cache government holiday calendars (SGX/MOM, ICDX/Indonesia)
 5. **Add Language Support** - Better handling for Chinese, Arabic, Hebrew content
-6. **Manual Verification** - Manually check Nasdaq Commodities, ICE Endex, CFFEX, GME
+6. **Manual Verification** - Manually check remaining exchanges: CFFEX (partial), GME (unverified)
 
 ---
 
 ## Update History
+
+- **2025-01-19 19:30**: Added PDF parsing support and verified PDF-based calendars
+  - Added pdfplumber to requirements.txt for PDF parsing capability
+  - Found and verified PDF calendars for Nasdaq Commodities and ICE Endex
+  - Updated verification rate from 92% to 96% (50/52 exchanges)
+  - Europe region now at 100% verification (20/20)
 
 - **2025-01-19 18:00**: Deep investigation complete using ULTRATHINK approach
   - Started with 19 verified (37%)
@@ -228,5 +236,6 @@ python sync_holidays.py --exchanges XDME --verbose
 6. **Use Site Search**: When available, searched for "holiday", "calendar", "trading hours"
 7. **Verify Mobile Sites**: Some exchanges have separate mobile sites (DCE)
 8. **Check Data Portals**: Government and corporate data portals (SGX→data.gov.sg, TASE Data Hub)
+9. **Direct PDF Search**: Search for PDF calendars when HTML pages unclear
 
-**Result**: 92% verification rate with real, working holiday calendar URLs for 48 out of 52 exchanges.
+**Result**: 96% verification rate with real, working holiday calendar URLs for 50 out of 52 exchanges.

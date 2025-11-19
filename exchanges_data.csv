@@ -18,8 +18,8 @@ exchange_name,iso_code,country,base_url,calendar_url,calendar_url_pattern
 "BME Spanish Exchanges",XMCE,Spain,https://www.bolsasymercados.es,https://www.bolsasymercados.es/bme-exchange/en/Trading,https://www.bolsasymercados.es/bme-exchange/en/Trading
 "SIX Swiss Exchange",XSWX,Switzerland,https://www.six-group.com,https://www.six-group.com/en/products-services/the-swiss-stock-exchange/trading/trading-calendar.html,https://www.six-group.com/en/products-services/the-swiss-stock-exchange/trading/trading-calendar.html
 "European Energy Exchange (EEX)",XEEE,Germany,https://www.eex.com,https://www.eex.com/en/about/services/trading-calendar,https://www.eex.com/en/about/services/trading-calendar
-"Nasdaq Commodities",XNDE,Norway,https://www.nasdaq.com,https://www.nasdaq.com/solutions/nordic-european-power,https://www.nasdaq.com/solutions/nordic-european-power
-"ICE Endex",NDEX,Netherlands,https://www.ice.com,https://www.ice.com/index,https://www.ice.com/index
+"Nasdaq Commodities",XNDE,Norway,https://www.nasdaq.com,https://www.nasdaq.com/docs/2024/12/11/Holiday-Calendar-Commodities-Markets.pdf,https://www.nasdaq.com/docs/{year}/{month}/{day}/Holiday-Calendar-Commodities-Markets.pdf
+"ICE Endex",NDEX,Netherlands,https://www.ice.com,https://www.ice.com/publicdocs/ICE_Endex_Trading_Schedule.pdf,https://www.ice.com/publicdocs/clear_netherlands/circulars/ICNL_Circular_C24_064_-_Holiday_Calendar_{year}.pdf
 "Budapest Stock Exchange (BSE)",XBUD,Hungary,https://www.bse.hu,https://www.bse.hu/pages/trading-calendar,https://www.bse.hu/pages/trading-calendar
 "Warsaw Stock Exchange (GPW)",XWAR,Poland,https://www.gpw.pl,https://www.gpw.pl/en-trading-calendar,https://www.gpw.pl/en-trading-calendar
 "Athens Exchange (ATHEX) Derivatives",XATH,Greece,https://www.athexgroup.gr,https://www.athexgroup.gr/en/trading-calendar,https://www.athexgroup.gr/en/trading-calendar
