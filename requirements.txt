@@ -1,0 +1,19 @@
+# Exchange Holiday Calendar System - Python Dependencies
+
+# Core dependencies
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Optional: For PDF parsing (uncomment if needed)
+# pdfplumber>=0.10.0
+
+# Database
+# sqlite3 is included in Python standard library
+
+# Email
+# smtplib and email are included in Python standard library
+
+# Development and testing (optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
