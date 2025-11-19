@@ -32,12 +32,13 @@ class HolidayScraper:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
-    def fetch_url(self, url: str) -> Tuple[bool, Optional[str], Optional[int], Optional[str]]:
+    def fetch_url(self, url: str, binary: bool = False) -> Tuple[bool, Optional[str], Optional[int], Optional[str]]:
         """
         Fetch content from URL with retry logic
 
         Args:
             url: URL to fetch
+            binary: If True, return binary content (bytes), otherwise text (str)
 
         Returns:
             Tuple of (success, content, status_code, error_message)
@@ -46,7 +47,8 @@ class HolidayScraper:
             try:
                 response = self.session.get(url, timeout=self.timeout, allow_redirects=True)
                 response.raise_for_status()
-                return True, response.text, response.status_code, None
+                content = response.content if binary else response.text
+                return True, content, response.status_code, None
             except requests.exceptions.RequestException as e:
                 error_msg = f"Attempt {attempt + 1}/{self.retry_attempts} failed: {str(e)}"
                 if attempt < self.retry_attempts - 1:
@@ -247,13 +249,9 @@ class HolidayScraper:
             import pdfplumber
             import io
 
-            success, content_bytes, _, _ = self.fetch_url(url)
+            success, content_bytes, _, _ = self.fetch_url(url, binary=True)
             if not success:
                 return []
-
-            # Convert to bytes if string
-            if isinstance(content_bytes, str):
-                content_bytes = content_bytes.encode('latin-1')
 
             holidays = []
 
