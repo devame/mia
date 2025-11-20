@@ -317,28 +317,103 @@ class ExchangeExtractors:
 
     def extract_eurex(self, url: str, iso_code: str) -> List[Dict]:
         """
-        Extract holidays from Eurex trading calendar
+        Extract holidays from Eurex holiday regulations page
 
-        URL: https://www.eurex.com/ex-en/trade/trading-calendar
+        URL: https://www.eurex.com/ex-en/trade/trading-calendar/holiday-regulations
 
-        Eurex typically has a structured calendar with dates and market info.
-        Need to inspect actual page structure.
+        The page has a table with daily calendar entries:
+        Column 1: "01 January" (with non-breaking space)
+        Column 2: "Eurex is closed for trading..."
+
+        Also extracts from summary table for major holidays 2025-2030.
         """
+        # NOTE: Eurex page uses JavaScript to render tables dynamically
+        # BeautifulSoup cannot parse JavaScript-rendered content
+        # This extractor is non-functional until either:
+        # 1. Eurex provides a static HTML version, OR
+        # 2. We implement PDF-based extraction, OR
+        # 3. We add browser automation (Selenium/Playwright)
+        #
+        # Recommended: Use PDF calendar at:
+        # https://www.eurex.com/resource/blob/.../tradingcalendar_{year}_en.pdf
+
         success, content, _, _ = self.scraper.fetch_url(url)
         if not success:
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
         holidays = []
+        current_year = datetime.now().year
 
-        # TODO: Inspect actual Eurex page structure and implement
-        # Placeholder for now - need to examine the actual HTML
-        print(f"[DEBUG] Eurex extractor needs implementation")
-        print(f"[DEBUG] Page title: {soup.title.string if soup.title else 'No title'}")
-
-        # Look for common patterns
+        # Find all tables
         tables = soup.find_all('table')
-        print(f"[DEBUG] Found {len(tables)} tables")
+
+        if not tables:
+            # Tables are loaded via JavaScript - cannot be parsed with BeautifulSoup
+            return []
+
+        # Process first table (daily calendar)
+        table = tables[0]
+        rows = table.find_all('tr')
+
+        for row in rows:
+            cells = row.find_all(['td', 'th'])
+            if len(cells) < 2:
+                continue
+
+            # Column 1: date like "01 January" or "01\xa0January"
+            date_text = cells[0].get_text(strip=True)
+            # Column 2: description
+            description = cells[1].get_text(strip=True)
+
+            # Only process rows that mention "closed"
+            if not description or 'closed' not in description.lower():
+                continue
+
+            # Parse date - handle non-breaking space
+            date_text = date_text.replace('\xa0', ' ')
+
+            # Pattern: DD Month or DD\xa0Month
+            try:
+                # Try parsing as "DD Month"
+                parsed_date = datetime.strptime(f"{date_text} {current_year}", '%d %B %Y')
+                iso_date = parsed_date.strftime('%Y-%m-%d')
+            except ValueError:
+                # Skip if date parsing fails
+                continue
+
+            # Extract holiday name from description or date
+            holiday_name = date_text  # Default to date
+            if 'New Year' in description:
+                holiday_name = "New Year's Day"
+            elif 'Good Friday' in description:
+                holiday_name = "Good Friday"
+            elif 'Easter Monday' in description:
+                holiday_name = "Easter Monday"
+            elif 'Labour Day' in description or 'Labor Day' in description:
+                holiday_name = "Labour Day"
+            elif 'Christmas' in description:
+                if 'Eve' in description:
+                    holiday_name = "Christmas Eve"
+                elif 'Boxing' in description:
+                    holiday_name = "Boxing Day"
+                else:
+                    holiday_name = "Christmas Day"
+            elif 'Whit Monday' in description:
+                holiday_name = "Whit Monday"
+
+            # Determine if full closure or partial
+            is_full_closure = 'all derivatives' in description.lower()
+
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': iso_date,
+                'holiday_name': holiday_name,
+                'holiday_description': description[:200],  # Limit description length
+                'products_trading': None if is_full_closure else 'Partial closure',
+                'is_full_closure': is_full_closure,
+                'early_close_time': None
+            })
 
         return holidays
 
