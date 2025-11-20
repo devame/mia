@@ -7,14 +7,14 @@ Montreal Exchange (TMX),XMOD,Canada,https://www.m-x.ca,https://www.m-x.ca/en/tra
 B3 (Brasil Bolsa Balcao),BVMF,Brazil,https://www.b3.com.br,https://www.b3.com.br,https://www.b3.com.br/en_us/solutions/platforms/puma-trading-system/for-members-and-traders/trading-calendar/holidays/
 MexDer (Mexican Derivatives Exchange),MEXD,Mexico,https://www.bmv.com.mx,https://www.bmv.com.mx/en/Grupo_BMV,https://www.bmv.com.mx/en/Grupo_BMV
 Eurex (Eurex Deutschland),XEUR,Germany,https://www.eurex.com,https://www.eurex.com/ex-en/trade/trading-calendar,https://www.eurex.com/resource/blob/4242284/1c8da6dc2702d508ee2a4740654ea77d/data/tradingcalendar_{year}_en.pdf
-London Metal Exchange (LME),XLME,United Kingdom,https://www.lme.com,https://www.lme.com,https://www.lme.com/en/Trading/Trading-information/Trading-calendar
-Euronext Paris,XPAR,France,https://www.euronext.com,https://www.euronext.com/en/markets/paris,https://www.euronext.com/en/trade/trading-calendar
-Euronext Amsterdam,XAMS,Netherlands,https://www.euronext.com,https://connect2.euronext.com/sites/default/files/2025-11/IF251107CADE%202026%20Holiday%20Calendar%20for%20Euronexts%20Cash%20and%20Derivatives%20markets_1.pdf?VersionId=3ehe2.c9cMxv1K36.i6o4tz.5CAJmuw2,https://www.euronext.com/en/trade/trading-calendar
-Euronext Brussels,XBRU,Belgium,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trade/trading-calendar
-Euronext Lisbon,XLIS,Portugal,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trade/trading-calendar
-Euronext Dublin,XDUB,Ireland,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trade/trading-calendar
-Euronext Milan (Borsa Italiana),XMIL,Italy,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trade/trading-calendar
-Euronext Oslo,XOSL,Norway,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trade/trading-calendar
+London Metal Exchange (LME),XLME,United Kingdom,https://www.lme.com,https://www.lme.com/-/media/Files/Trading/Trading-Calendar-2025-2035-digital-version.pdf,https://www.lme.com/-/media/Files/Trading/Trading-Calendar-2025-2035-digital-version.pdf
+Euronext Paris,XPAR,France,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
+Euronext Amsterdam,XAMS,Netherlands,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
+Euronext Brussels,XBRU,Belgium,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
+Euronext Lisbon,XLIS,Portugal,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
+Euronext Dublin,XDUB,Ireland,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
+Euronext Milan (Borsa Italiana),XMIL,Italy,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
+Euronext Oslo,XOSL,Norway,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
 BME Spanish Exchanges,XMCE,Spain,https://www.bolsasymercados.es,https://www.bolsasymercados.es/bme-exchange/en/Trading,https://www.bolsasymercados.es/bme-exchange/en/Trading
 SIX Swiss Exchange,XSWX,Switzerland,https://www.six-group.com,https://www.six-group.com/dam/download/the-swiss-stock-exchange/trading/trading-provisions/regulation/trading-guides/trading-calendar-2025.pdf,https://www.six-group.com/en/products-services/the-swiss-stock-exchange/trading/trading-calendar.html
 European Energy Exchange (EEX),XEEE,Germany,https://www.eex.com,https://www.eex.com/en/about/services/trading-calendar,https://www.eex.com/en/about/services/trading-calendar

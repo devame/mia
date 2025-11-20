@@ -38,6 +38,15 @@ class ExchangeExtractors:
             'BVMF': self.extract_b3,
             'XNDE': self.extract_nasdaq_commodities,
             'NDEX': self.extract_ice_endex,
+            'XLME': self.extract_lme,  # London Metal Exchange
+            # Euronext exchanges (all 7 use same extractor)
+            'XPAR': self.extract_euronext,  # Euronext Paris
+            'XAMS': self.extract_euronext,  # Euronext Amsterdam
+            'XBRU': self.extract_euronext,  # Euronext Brussels
+            'XLIS': self.extract_euronext,  # Euronext Lisbon
+            'XDUB': self.extract_euronext,  # Euronext Dublin
+            'XMIL': self.extract_euronext,  # Euronext Milan
+            'XOSL': self.extract_euronext,  # Euronext Oslo
             # Add more as we build them
         }
 
@@ -334,6 +343,176 @@ class ExchangeExtractors:
         return holidays
 
     # =========================================================================
+    # EUROPE - Euronext (All 7 exchanges)
+    # =========================================================================
+
+    def extract_euronext(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from Euronext trading hours & holidays page
+        Used for all 7 Euronext exchanges
+
+        URL: https://www.euronext.com/en/trading/trading-hours-holidays
+
+        Exchanges:
+        - XPAR: Paris
+        - XAMS: Amsterdam
+        - XBRU: Brussels
+        - XLIS: Lisbon
+        - XDUB: Dublin
+        - XMIL: Milan
+        - XOSL: Oslo
+
+        Structure:
+        - Multiple tables (one per year: 2024, 2025, 2026)
+        - First column: Date and holiday name (e.g., "Friday 3 April 2026 (Good Friday)")
+        - Subsequent columns: One per exchange (Amsterdam, Brussels, Dublin, Lisbon, Milan, Oslo, Paris)
+        - Cell values: "Closed", "Full Trading Day", "Half Trading Day", "*No TAH", etc.
+
+        Returns holidays for the specific exchange (iso_code)
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+
+        # Mapping of ISO codes to exchange names (as they appear in table headers)
+        iso_to_exchange = {
+            'XPAR': 'Paris',
+            'XAMS': 'Amsterdam',
+            'XBRU': 'Brussels',
+            'XLIS': 'Lisbon',
+            'XDUB': 'Dublin',
+            'XMIL': 'Milan',
+            'XOSL': 'Oslo'
+        }
+
+        if iso_code not in iso_to_exchange:
+            return []
+
+        target_exchange = iso_to_exchange[iso_code]
+
+        # Find all tables on the page
+        tables = soup.find_all('table')
+
+        for table in tables:
+            # Get table headers to find the column index for our exchange
+            headers = table.find_all('th')
+            if not headers:
+                continue
+
+            # Find which column contains our target exchange
+            target_column_index = None
+            for idx, header in enumerate(headers):
+                header_text = header.get_text(strip=True)
+                if target_exchange.lower() in header_text.lower():
+                    target_column_index = idx
+                    break
+
+            # If this table doesn't have our exchange, skip it
+            if target_column_index is None:
+                continue
+
+            # Process table rows
+            tbody = table.find('tbody')
+            if not tbody:
+                # Try rows directly in table
+                rows = table.find_all('tr')
+            else:
+                rows = tbody.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) <= target_column_index:
+                    continue
+
+                # First column: date and holiday name
+                date_cell = cells[0]
+                date_text = date_cell.get_text(strip=True)
+
+                if not date_text:
+                    continue
+
+                # Skip header rows
+                if any(x in date_text.lower() for x in ['amsterdam', 'brussels', 'dublin', 'lisbon', 'milan', 'oslo', 'paris']):
+                    continue
+
+                # Parse date - format: "Friday 3 April 2026 (Good Friday)"
+                # Extract holiday name from parentheses
+                holiday_name = None
+                if '(' in date_text and ')' in date_text:
+                    start = date_text.index('(')
+                    end = date_text.index(')')
+                    holiday_name = date_text[start+1:end].strip()
+                    # Get date part (before parentheses)
+                    date_part = date_text[:start].strip()
+                else:
+                    date_part = date_text
+                    holiday_name = date_text
+
+                # Parse the date - format: "Friday 3 April 2026" or "3 April 2026"
+                parsed_date = self._parse_euronext_date(date_part)
+
+                if not parsed_date:
+                    continue
+
+                # Get status for target exchange
+                status_cell = cells[target_column_index]
+                status_text = status_cell.get_text(strip=True)
+
+                # Clean up status text (remove footnote markers)
+                status_clean = status_text.replace('*', '').replace('**', '').strip()
+
+                # Determine if it's a closure
+                is_closed = 'closed' in status_clean.lower()
+                is_half_day = 'half' in status_clean.lower()
+
+                # Only add if it's a closure or half day (not full trading days)
+                if is_closed or is_half_day:
+                    holidays.append({
+                        'iso_code': iso_code,
+                        'holiday_date': parsed_date,
+                        'holiday_name': holiday_name or 'Market Closure',
+                        'holiday_description': f"{holiday_name or 'Market Closure'} - {status_clean}",
+                        'products_trading': None,
+                        'is_full_closure': is_closed,
+                        'early_close_time': None if is_closed else 'See exchange website'
+                    })
+
+        return holidays
+
+    def _parse_euronext_date(self, date_text: str) -> Optional[str]:
+        """
+        Parse Euronext date format: "Friday 3 April 2026" or "3 April 2026"
+
+        Args:
+            date_text: Date string to parse
+
+        Returns:
+            ISO date string (YYYY-MM-DD) or None
+        """
+        date_text = date_text.strip()
+
+        # Try various date formats
+        formats = [
+            '%A %d %B %Y',  # "Friday 3 April 2026"
+            '%d %B %Y',      # "3 April 2026"
+            '%A, %d %B %Y',  # "Friday, 3 April 2026"
+            '%d %b %Y',      # "3 Apr 2026"
+            '%A %d %b %Y',   # "Friday 3 Apr 2026"
+        ]
+
+        for fmt in formats:
+            try:
+                parsed = datetime.strptime(date_text, fmt)
+                return parsed.strftime('%Y-%m-%d')
+            except ValueError:
+                continue
+
+        return None
+
+    # =========================================================================
     # USA - CME Group
     # =========================================================================
 
@@ -508,6 +687,347 @@ class ExchangeExtractors:
             print(f"Error parsing ICE Endex PDF: {e}")
 
         return holidays
+
+    # =========================================================================
+    # UK - London Metal Exchange
+    # =========================================================================
+
+    def extract_lme(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from London Metal Exchange (LME) trading calendar
+
+        URL: https://www.lme.com/-/media/Files/Trading/Trading-Calendar-2025-2035-digital-version.pdf
+
+        IMPORTANT: The PDF is image-based (scanned pages) and requires OCR to extract text.
+        This implementation uses UK bank holiday data since LME follows UK bank holidays.
+
+        LME closure days follow UK bank holidays:
+        - New Year's Day (or substitute if weekend)
+        - Good Friday
+        - Easter Monday
+        - Early May Bank Holiday (first Monday in May)
+        - Spring Bank Holiday (last Monday in May)
+        - Summer Bank Holiday (last Monday in August)
+        - Christmas Day (or substitute if weekend)
+        - Boxing Day (or substitute if weekend)
+
+        Coverage: 2025-2035
+
+        Returns:
+            List of dictionaries with holiday information
+
+        Note:
+            For automated PDF extraction, you would need:
+            - pytesseract (pip install pytesseract)
+            - tesseract-ocr system binary
+            - pdf2image (pip install pdf2image)
+            - poppler-utils system binary
+        """
+        success, content_bytes, _, _ = self.scraper.fetch_url(url, binary=True)
+        if not success:
+            # Fall back to UK bank holidays calculation
+            return self._get_lme_uk_bank_holidays(iso_code)
+
+        try:
+            # Try to parse PDF
+            holidays = self._extract_lme_from_pdf(content_bytes, iso_code, url)
+
+            if holidays:
+                return holidays
+            else:
+                # Fall back to UK bank holidays if PDF parsing fails
+                return self._get_lme_uk_bank_holidays(iso_code)
+
+        except Exception as e:
+            print(f"[LME] Error parsing PDF: {e}, using UK bank holiday data")
+            return self._get_lme_uk_bank_holidays(iso_code)
+
+    def _extract_lme_from_pdf(self, content_bytes: bytes, iso_code: str, url: str) -> List[Dict]:
+        """
+        Attempt to extract holidays from LME PDF
+
+        Args:
+            content_bytes: PDF file content
+            iso_code: Exchange ISO code
+            url: Original URL
+
+        Returns:
+            List of holiday dictionaries, or empty list if extraction fails
+        """
+        holidays = []
+
+        try:
+            with pdfplumber.open(io.BytesIO(content_bytes)) as pdf:
+                # Check if PDF has text content
+                if len(pdf.pages) > 0:
+                    first_page = pdf.pages[0]
+                    char_count = len(first_page.chars) if first_page.chars else 0
+
+                    if char_count == 0:
+                        # Image-based PDF - requires OCR
+                        print("[LME] PDF is image-based and requires OCR. Using UK bank holiday data.")
+                        return []
+
+                    # PDF has text but holidays are marked visually (colored cells)
+                    # Fall back to calculated UK bank holidays
+                    print("[LME] PDF text doesn't explicitly list holidays. Using UK bank holiday data.")
+                    return []
+
+        except Exception as e:
+            print(f"[LME] PDF parsing error: {e}")
+            return []
+
+        return holidays
+
+    def _get_lme_uk_bank_holidays(self, iso_code: str) -> List[Dict]:
+        """
+        Return LME holidays based on UK bank holidays
+
+        LME follows UK bank holidays. This provides comprehensive coverage
+        for years 2025-2035.
+
+        Args:
+            iso_code: Exchange ISO code
+
+        Returns:
+            List of holiday dictionaries
+        """
+        holidays = []
+
+        # Generate holidays for years 2025-2035
+        for year in range(2025, 2036):
+            year_holidays = self._calculate_uk_bank_holidays_for_year(year, iso_code)
+            holidays.extend(year_holidays)
+
+        return holidays
+
+    def _calculate_uk_bank_holidays_for_year(self, year: int, iso_code: str) -> List[Dict]:
+        """
+        Calculate UK bank holidays for a specific year
+
+        Args:
+            year: Year to calculate holidays for
+            iso_code: Exchange ISO code
+
+        Returns:
+            List of holiday dictionaries for the year
+        """
+        from datetime import timedelta
+
+        # Calculate Easter Sunday
+        try:
+            from dateutil.easter import easter
+            easter_date = easter(year)
+        except ImportError:
+            # Fallback: use Meeus's algorithm
+            easter_date = self._calculate_easter_meeus(year)
+
+        holidays = []
+
+        # New Year's Day (with substitute if on weekend)
+        new_year = datetime(year, 1, 1)
+        if new_year.weekday() == 5:  # Saturday
+            new_year_obs = datetime(year, 1, 3)  # Monday substitute
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': new_year_obs.strftime('%Y-%m-%d'),
+                'holiday_name': "New Year's Day (substitute)",
+                'holiday_description': "New Year's Day observed (Saturday → Monday)",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+        elif new_year.weekday() == 6:  # Sunday
+            new_year_obs = datetime(year, 1, 2)  # Monday substitute
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': new_year_obs.strftime('%Y-%m-%d'),
+                'holiday_name': "New Year's Day (substitute)",
+                'holiday_description': "New Year's Day observed (Sunday → Monday)",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+        else:
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': new_year.strftime('%Y-%m-%d'),
+                'holiday_name': "New Year's Day",
+                'holiday_description': "New Year's Day",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+
+        # Good Friday (Friday before Easter)
+        good_friday = easter_date - timedelta(days=2)
+        holidays.append({
+            'iso_code': iso_code,
+            'holiday_date': good_friday.strftime('%Y-%m-%d'),
+            'holiday_name': "Good Friday",
+            'holiday_description': "Good Friday",
+            'products_trading': None,
+            'is_full_closure': True,
+            'early_close_time': None
+        })
+
+        # Easter Monday (Monday after Easter)
+        easter_monday = easter_date + timedelta(days=1)
+        holidays.append({
+            'iso_code': iso_code,
+            'holiday_date': easter_monday.strftime('%Y-%m-%d'),
+            'holiday_name': "Easter Monday",
+            'holiday_description': "Easter Monday",
+            'products_trading': None,
+            'is_full_closure': True,
+            'early_close_time': None
+        })
+
+        # Early May Bank Holiday (first Monday in May)
+        may_first = datetime(year, 5, 1)
+        days_until_monday = (7 - may_first.weekday()) % 7
+        if may_first.weekday() != 0:  # If not Monday
+            early_may_bh = may_first + timedelta(days=days_until_monday)
+        else:
+            early_may_bh = may_first
+
+        holidays.append({
+            'iso_code': iso_code,
+            'holiday_date': early_may_bh.strftime('%Y-%m-%d'),
+            'holiday_name': "Early May Bank Holiday",
+            'holiday_description': "Early May Bank Holiday (first Monday in May)",
+            'products_trading': None,
+            'is_full_closure': True,
+            'early_close_time': None
+        })
+
+        # Spring Bank Holiday (last Monday in May)
+        may_end = datetime(year, 5, 31)
+        days_back = (may_end.weekday() - 0) % 7  # Days back to Monday
+        spring_bh = may_end - timedelta(days=days_back)
+
+        holidays.append({
+            'iso_code': iso_code,
+            'holiday_date': spring_bh.strftime('%Y-%m-%d'),
+            'holiday_name': "Spring Bank Holiday",
+            'holiday_description': "Spring Bank Holiday (last Monday in May)",
+            'products_trading': None,
+            'is_full_closure': True,
+            'early_close_time': None
+        })
+
+        # Summer Bank Holiday (last Monday in August)
+        aug_end = datetime(year, 8, 31)
+        days_back = (aug_end.weekday() - 0) % 7  # Days back to Monday
+        summer_bh = aug_end - timedelta(days=days_back)
+
+        holidays.append({
+            'iso_code': iso_code,
+            'holiday_date': summer_bh.strftime('%Y-%m-%d'),
+            'holiday_name': "Summer Bank Holiday",
+            'holiday_description': "Summer Bank Holiday (last Monday in August)",
+            'products_trading': None,
+            'is_full_closure': True,
+            'early_close_time': None
+        })
+
+        # Christmas Day and Boxing Day (with substitutes if on weekend)
+        christmas = datetime(year, 12, 25)
+        boxing_day = datetime(year, 12, 26)
+
+        if christmas.weekday() == 5:  # Saturday
+            # Christmas substitute: Monday Dec 27
+            # Boxing Day substitute: Tuesday Dec 28
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': datetime(year, 12, 27).strftime('%Y-%m-%d'),
+                'holiday_name': "Christmas Day (substitute)",
+                'holiday_description': "Christmas Day observed (Saturday → Monday)",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': datetime(year, 12, 28).strftime('%Y-%m-%d'),
+                'holiday_name': "Boxing Day (substitute)",
+                'holiday_description': "Boxing Day observed (Sunday → Tuesday)",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+        elif christmas.weekday() == 6:  # Sunday
+            # Christmas substitute: Tuesday Dec 27
+            # Boxing Day is Monday Dec 26 (no substitute)
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': boxing_day.strftime('%Y-%m-%d'),
+                'holiday_name': "Boxing Day",
+                'holiday_description': "Boxing Day",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': datetime(year, 12, 27).strftime('%Y-%m-%d'),
+                'holiday_name': "Christmas Day (substitute)",
+                'holiday_description': "Christmas Day observed (Sunday → Tuesday)",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+        else:
+            # Normal weekdays
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': christmas.strftime('%Y-%m-%d'),
+                'holiday_name': "Christmas Day",
+                'holiday_description': "Christmas Day",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': boxing_day.strftime('%Y-%m-%d'),
+                'holiday_name': "Boxing Day",
+                'holiday_description': "Boxing Day",
+                'products_trading': None,
+                'is_full_closure': True,
+                'early_close_time': None
+            })
+
+        return holidays
+
+    def _calculate_easter_meeus(self, year: int):
+        """
+        Calculate Easter Sunday using Meeus's algorithm (for Gregorian calendar)
+
+        This is a fallback if python-dateutil is not available.
+
+        Args:
+            year: Year to calculate Easter for
+
+        Returns:
+            datetime object for Easter Sunday
+        """
+        a = year % 19
+        b = year // 100
+        c = year % 100
+        d = b // 4
+        e = b % 4
+        f = (b + 8) // 25
+        g = (b - f + 1) // 3
+        h = (19 * a + b - d - g + 15) % 30
+        i = c // 4
+        k = c % 4
+        l = (32 + 2 * e + 2 * i - h - k) % 7
+        m = (a + 11 * h + 22 * l) // 451
+        month = (h + l - 7 * m + 114) // 31
+        day = ((h + l - 7 * m + 114) % 31) + 1
+
+        return datetime(year, month, day)
 
 
 # =========================================================================
