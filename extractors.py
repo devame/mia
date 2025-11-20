@@ -28,6 +28,10 @@ class ExchangeExtractors:
         # Registry mapping ISO codes to extractor functions
         self.extractors = {
             'XSES': self.extract_sgx_mom,  # Singapore - MOM calendar
+            'XJPX': self.extract_jpx,  # Japan Exchange Group
+            'XOSE': self.extract_jpx,  # Osaka Exchange (same source as JPX)
+            'IFUS': self.extract_ice_futures,  # ICE Futures US (PDF)
+            'IFEU': self.extract_ice_futures,  # ICE Futures Europe (same PDF)
             'XEUR': self.extract_eurex,
             'XCME': self.extract_cme,
             'XHKG': self.extract_hkex,
@@ -143,6 +147,158 @@ class ExchangeExtractors:
                         'is_full_closure': True,
                         'early_close_time': None
                     })
+
+        return holidays
+
+    # =========================================================================
+    # JAPAN - JPX / Osaka Exchange
+    # =========================================================================
+
+    def extract_jpx(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from Japan Exchange Group (JPX) calendar
+        Also used for Osaka Exchange (OSE) as they share the same calendar
+
+        URL: https://www.jpx.co.jp/english/corporate/about-jpx/calendar/index.html
+        OSE URL: https://www.jpx.co.jp/english/derivatives/rules/holidaytrading/index.html
+
+        Structure:
+        - <h2>2025</h2>
+        - <table> with holidays (format: "Jan. 1 (Wed.)" | "New Year's Day")
+        - <h2>2026</h2>
+        - <table> with holidays
+
+        Date format: "Mon. D (Day)" without year - need to infer from section header
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+        current_year = datetime.now().year
+
+        # Find all h2 headings that contain years
+        year_headings = soup.find_all('h2')
+
+        for heading in year_headings:
+            heading_text = heading.get_text(strip=True)
+
+            # Check if heading is a year (e.g., "2025", "2026")
+            if heading_text.isdigit() and len(heading_text) == 4:
+                year = int(heading_text)
+
+                # Find the next table after this heading
+                table = heading.find_next('table')
+                if not table:
+                    continue
+
+                rows = table.find_all('tr')
+
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) < 2:
+                        continue
+
+                    date_text = cells[0].get_text(strip=True)  # "Jan. 1 (Wed.)"
+                    holiday_name = cells[1].get_text(strip=True)  # "New Year's Day"
+
+                    if not date_text or not holiday_name:
+                        continue
+
+                    # Parse date with inferred year
+                    # Format: "Jan. 1 (Wed.)" -> extract "Jan. 1"
+                    # Remove day of week in parentheses
+                    date_part = date_text.split('(')[0].strip()
+
+                    # Add year to make parseable
+                    full_date_str = f"{date_part} {year}"
+
+                    # Parse with various formats
+                    parsed_date = None
+                    for fmt in ['%b. %d %Y', '%B. %d %Y', '%b %d %Y', '%B %d %Y']:
+                        try:
+                            parsed = datetime.strptime(full_date_str, fmt)
+                            parsed_date = parsed.strftime('%Y-%m-%d')
+                            break
+                        except ValueError:
+                            continue
+
+                    if parsed_date:
+                        holidays.append({
+                            'iso_code': iso_code,
+                            'holiday_date': parsed_date,
+                            'holiday_name': holiday_name,
+                            'holiday_description': holiday_name,
+                            'products_trading': None,
+                            'is_full_closure': True,
+                            'early_close_time': None
+                        })
+
+        return holidays
+
+    # =========================================================================
+    # USA/EUROPE - ICE Futures (PDF)
+    # =========================================================================
+
+    def extract_ice_futures(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from ICE Futures trading schedule PDF
+        Used for both ICE Futures US (IFUS) and ICE Futures Europe (IFEU)
+
+        URL: https://www.ice.com/publicdocs/Trading_Schedule.pdf
+
+        PDF contains trading schedules for multiple ICE exchanges with holiday closures.
+        Structure varies - need to parse tables and look for closure dates.
+        """
+        success, content_bytes, _, _ = self.scraper.fetch_url(url, binary=True)
+        if not success:
+            return []
+
+        holidays = []
+        current_year = datetime.now().year
+
+        try:
+            with pdfplumber.open(io.BytesIO(content_bytes)) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if not text:
+                        continue
+
+                    lines = text.split('\n')
+
+                    # Look for date patterns and "Closed" indicators
+                    for line in lines:
+                        # Look for dates followed by "Closed" or "Holiday"
+                        if any(indicator in line for indicator in ['Closed', 'Holiday', 'CLOSED']):
+                            # Try to extract date from line
+                            # Common patterns: "January 1" "Jan 1" "1/1/2025"
+                            words = line.split()
+
+                            # Try to find date in this line
+                            for i, word in enumerate(words):
+                                if i < len(words) - 1:
+                                    # Try "Month Day" pattern
+                                    date_str = f"{word} {words[i+1]}"
+                                    parsed_date = parse_month_day_with_year_inference(date_str, current_year)
+
+                                    if parsed_date:
+                                        # Extract holiday name from line
+                                        holiday_name = line.strip()
+
+                                        holidays.append({
+                                            'iso_code': iso_code,
+                                            'holiday_date': parsed_date,
+                                            'holiday_name': holiday_name,
+                                            'holiday_description': holiday_name,
+                                            'products_trading': None,
+                                            'is_full_closure': True,
+                                            'early_close_time': None
+                                        })
+                                        break
+
+        except Exception as e:
+            print(f"Error parsing ICE Futures PDF: {e}")
 
         return holidays
 
