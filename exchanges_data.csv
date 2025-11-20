@@ -17,12 +17,12 @@ Euronext Milan (Borsa Italiana),XMIL,Italy,https://www.euronext.com,https://www.
 Euronext Oslo,XOSL,Norway,https://www.euronext.com,https://www.euronext.com/en/trading/trading-hours-holidays,https://www.euronext.com/en/trading/trading-hours-holidays
 BME Spanish Exchanges,XMCE,Spain,https://www.bolsasymercados.es,https://www.bolsasymercados.es/bme-exchange/en/Trading,https://www.bolsasymercados.es/bme-exchange/en/Trading
 SIX Swiss Exchange,XSWX,Switzerland,https://www.six-group.com,https://www.six-group.com/dam/download/the-swiss-stock-exchange/trading/trading-provisions/regulation/trading-guides/trading-calendar-2025.pdf,https://www.six-group.com/en/products-services/the-swiss-stock-exchange/trading/trading-calendar.html
-European Energy Exchange (EEX),XEEE,Germany,https://www.eex.com,https://www.eex.com/en/about/services/trading-calendar,https://www.eex.com/en/about/services/trading-calendar
+European Energy Exchange (EEX),XEEE,Germany,https://www.eex-group.com,https://www.eex-group.com/en/markets/trading-calendar,https://www.eex-group.com/en/markets/trading-calendar
 Nasdaq Commodities,XNDE,Norway,https://www.nasdaq.com,https://www.nasdaq.com/docs/2024/12/11/Holiday-Calendar-Commodities-Markets.pdf,https://www.nasdaq.com/docs/{year}/{month}/{day}/Holiday-Calendar-Commodities-Markets.pdf
 ICE Endex,NDEX,Netherlands,https://www.ice.com,https://www.ice.com/publicdocs/ICE_Endex_Trading_Schedule.pdf,https://www.ice.com/publicdocs/clear_netherlands/circulars/ICNL_Circular_C24_064_-_Holiday_Calendar_{year}.pdf
-Budapest Stock Exchange (BSE),XBUD,Hungary,https://www.bse.hu,https://www.bse.hu/pages/trading-calendar,https://www.bse.hu/pages/trading-calendar
-Warsaw Stock Exchange (GPW),XWAR,Poland,https://www.gpw.pl,https://www.gpw.pl/en-trading-calendar,https://www.gpw.pl/en-trading-calendar
-Athens Exchange (ATHEX) Derivatives,XATH,Greece,https://www.athexgroup.gr,https://www.athexgroup.gr/en/trading-calendar,https://www.athexgroup.gr/en/trading-calendar
+Budapest Stock Exchange (BSE),XBUD,Hungary,https://www.bse.hu,https://www.bse.hu/Products-and-Services/Trading-information/trading-calendar-2025,https://www.bse.hu/Products-and-Services/Trading-information/trading-calendar-{year}
+Warsaw Stock Exchange (GPW),XWAR,Poland,https://www.gpw.pl,https://www.gpw.pl/ri-calendar,https://www.gpw.pl/ri-calendar
+Athens Exchange (ATHEX) Derivatives,XATH,Greece,https://www.athexgroup.gr,https://www.athexgroup.gr/en/trade/trading-model/calendar,https://www.athexgroup.gr/en/trade/trading-model/calendar
 Moscow Exchange (MOEX),MISX,Russia,https://www.moex.com,https://www.moex.com/en/tradingcalendar,https://www.moex.com/en/tradingcalendar
 Borsa Istanbul VIOP,XIST,Turkey,https://www.borsaistanbul.com,https://www.borsaistanbul.com/en/sayfa/452/trading-calendar,https://www.borsaistanbul.com/en/sayfa/452/trading-calendar
 Singapore Exchange (SGX),XSES,Singapore,https://www.sgx.com,https://www.tradinghours.com/markets/sgx,http://www.mom.gov.sg/employment-practices/public-holidays

@@ -317,105 +317,198 @@ class ExchangeExtractors:
 
     def extract_eurex(self, url: str, iso_code: str) -> List[Dict]:
         """
-        Extract holidays from Eurex holiday regulations page
+        Extract holidays from Eurex trading calendar PDF
 
-        URL: https://www.eurex.com/ex-en/trade/trading-calendar/holiday-regulations
+        Eurex provides annual PDF trading calendars at:
+        https://www.eurex.com/resource/blob/{id}/data/tradingcalendar_{year}_en.pdf
 
-        The page has a table with daily calendar entries:
-        Column 1: "01 January" (with non-breaking space)
-        Column 2: "Eurex is closed for trading..."
+        Since the HTML page uses JavaScript rendering, we fetch the PDF directly.
+        The PDF contains a table with trading days marked as either:
+        - Regular trading day
+        - Closed (full closure)
+        - Special notes (partial closure, early close)
 
-        Also extracts from summary table for major holidays 2025-2030.
+        Strategy:
+        1. Try to fetch PDF for current year and next year
+        2. Extract all dates marked as "closed" or with special trading notes
+        3. Parse into holiday format
+
+        Returns:
+            List of dictionaries with holiday information
         """
-        # NOTE: Eurex page uses JavaScript to render tables dynamically
-        # BeautifulSoup cannot parse JavaScript-rendered content
-        # This extractor is non-functional until either:
-        # 1. Eurex provides a static HTML version, OR
-        # 2. We implement PDF-based extraction, OR
-        # 3. We add browser automation (Selenium/Playwright)
-        #
-        # Recommended: Use PDF calendar at:
-        # https://www.eurex.com/resource/blob/.../tradingcalendar_{year}_en.pdf
-
-        success, content, _, _ = self.scraper.fetch_url(url)
-        if not success:
-            return []
-
-        soup = BeautifulSoup(content, 'html.parser')
         holidays = []
         current_year = datetime.now().year
 
-        # Find all tables
-        tables = soup.find_all('table')
+        # Try to fetch PDFs for current year and next year
+        for year in [current_year, current_year + 1]:
+            # Known PDF URL pattern from 2025
+            # The blob ID might change, so we try the known pattern first
+            pdf_urls = [
+                f"https://www.eurex.com/resource/blob/4242284/1c8da6dc2702d508ee2a4740654ea77d/data/tradingcalendar_{year}_en.pdf",
+                f"https://www.eurex.com/ex-en/resources/trading-calendar/{year}",
+            ]
 
-        if not tables:
-            # Tables are loaded via JavaScript - cannot be parsed with BeautifulSoup
-            return []
+            pdf_content = None
+            for pdf_url in pdf_urls:
+                success, content_bytes, _, _ = self.scraper.fetch_url(pdf_url, binary=True)
+                if success and content_bytes:
+                    pdf_content = content_bytes
+                    break
 
-        # Process first table (daily calendar)
-        table = tables[0]
-        rows = table.find_all('tr')
-
-        for row in rows:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 2:
+            if not pdf_content:
                 continue
 
-            # Column 1: date like "01 January" or "01\xa0January"
-            date_text = cells[0].get_text(strip=True)
-            # Column 2: description
-            description = cells[1].get_text(strip=True)
-
-            # Only process rows that mention "closed"
-            if not description or 'closed' not in description.lower():
-                continue
-
-            # Parse date - handle non-breaking space
-            date_text = date_text.replace('\xa0', ' ')
-
-            # Pattern: DD Month or DD\xa0Month
+            # Parse PDF
             try:
-                # Try parsing as "DD Month"
-                parsed_date = datetime.strptime(f"{date_text} {current_year}", '%d %B %Y')
-                iso_date = parsed_date.strftime('%Y-%m-%d')
-            except ValueError:
-                # Skip if date parsing fails
+                year_holidays = self._extract_eurex_from_pdf(pdf_content, iso_code, year)
+                holidays.extend(year_holidays)
+            except Exception as e:
+                print(f"[Eurex] Error parsing PDF for {year}: {e}")
                 continue
-
-            # Extract holiday name from description or date
-            holiday_name = date_text  # Default to date
-            if 'New Year' in description:
-                holiday_name = "New Year's Day"
-            elif 'Good Friday' in description:
-                holiday_name = "Good Friday"
-            elif 'Easter Monday' in description:
-                holiday_name = "Easter Monday"
-            elif 'Labour Day' in description or 'Labor Day' in description:
-                holiday_name = "Labour Day"
-            elif 'Christmas' in description:
-                if 'Eve' in description:
-                    holiday_name = "Christmas Eve"
-                elif 'Boxing' in description:
-                    holiday_name = "Boxing Day"
-                else:
-                    holiday_name = "Christmas Day"
-            elif 'Whit Monday' in description:
-                holiday_name = "Whit Monday"
-
-            # Determine if full closure or partial
-            is_full_closure = 'all derivatives' in description.lower()
-
-            holidays.append({
-                'iso_code': iso_code,
-                'holiday_date': iso_date,
-                'holiday_name': holiday_name,
-                'holiday_description': description[:200],  # Limit description length
-                'products_trading': None if is_full_closure else 'Partial closure',
-                'is_full_closure': is_full_closure,
-                'early_close_time': None
-            })
 
         return holidays
+
+    def _extract_eurex_from_pdf(self, content_bytes: bytes, iso_code: str, year: int) -> List[Dict]:
+        """
+        Extract holidays from Eurex trading calendar PDF
+
+        The PDF format (as of 2025) contains text split across lines like:
+        Line 1: "Eurex is closed for trading and clearing (exercise, settlement and cash)"
+        Line 2: "in all derivatives: 1 January, 18 April, 21April, 1 May, 25 December,"
+        Line 3: "26 December"
+
+        Args:
+            content_bytes: PDF file content
+            iso_code: Exchange ISO code
+            year: Year of the calendar
+
+        Returns:
+            List of holiday dictionaries
+        """
+        holidays = []
+
+        try:
+            with pdfplumber.open(io.BytesIO(content_bytes)) as pdf:
+                # Extract text from all pages
+                full_text = ""
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text:
+                        full_text += text + "\n"
+
+                if not full_text:
+                    return holidays
+
+                # Look for holiday declaration sections
+                lines = full_text.split('\n')
+
+                # Process lines looking for "Eurex is closed" declarations
+                for i, line in enumerate(lines):
+                    line_lower = line.lower()
+
+                    # Check if line contains holiday closure information
+                    if 'eurex is closed' in line_lower:
+                        # Determine closure type from this line
+                        is_full_closure = 'clearing' in line_lower and ('exercise' in line_lower or 'settlement' in line_lower)
+
+                        # Look for dates in this line and the next few lines
+                        # The dates might be on the same line or continuation lines
+                        context_lines = [line]
+                        for j in range(1, 4):  # Check next 3 lines
+                            if i + j < len(lines):
+                                context_lines.append(lines[i + j])
+
+                        # Combine context lines for date extraction
+                        context_text = ' '.join(context_lines)
+
+                        # Extract dates from context
+                        month_names = ['january', 'february', 'march', 'april', 'may', 'june',
+                                      'july', 'august', 'september', 'october', 'november', 'december']
+
+                        # Find all "DD Month" patterns
+                        for month_idx, month_name in enumerate(month_names, 1):
+                            # Look for patterns like "1 January", "18 April", "21April" (no space)
+                            patterns = [
+                                rf'(\d{{1,2}})\s+{month_name}',  # With space
+                                rf'(\d{{1,2}}){month_name}',     # Without space
+                            ]
+
+                            for pattern in patterns:
+                                matches = re.finditer(pattern, context_text.lower())
+                                for match in matches:
+                                    try:
+                                        day = int(match.group(1))
+                                        parsed_date = datetime(year, month_idx, day)
+                                        iso_date = parsed_date.strftime('%Y-%m-%d')
+
+                                        # Extract holiday name
+                                        holiday_name = self._extract_eurex_holiday_name(context_text, parsed_date)
+
+                                        # Check if we already have this holiday
+                                        if not any(h['holiday_date'] == iso_date for h in holidays):
+                                            holidays.append({
+                                                'iso_code': iso_code,
+                                                'holiday_date': iso_date,
+                                                'holiday_name': holiday_name,
+                                                'holiday_description': 'Eurex closed for trading' + (' and clearing' if is_full_closure else ''),
+                                                'products_trading': None,
+                                                'is_full_closure': is_full_closure,
+                                                'early_close_time': None
+                                            })
+                                    except (ValueError, IndexError) as e:
+                                        continue
+
+        except Exception as e:
+            print(f"[Eurex] Error extracting from PDF: {e}")
+
+        return holidays
+
+    def _extract_eurex_holiday_name(self, text: str, date: datetime) -> str:
+        """
+        Extract holiday name from Eurex calendar text or infer from date
+
+        Args:
+            text: Text containing the holiday mention
+            date: The holiday date
+
+        Returns:
+            Holiday name
+        """
+        text_lower = text.lower()
+
+        # Check for explicit holiday names (English and German)
+        holiday_keywords = {
+            "New Year's Day": ['new year', 'neujahr'],
+            "Good Friday": ['good friday', 'karfreitag'],
+            "Easter Monday": ['easter monday', 'ostermontag'],
+            "Labour Day": ['labour day', 'labor day', 'tag der arbeit', '1. mai'],
+            "Christmas Eve": ['christmas eve', 'heiligabend'],
+            "Christmas Day": ['christmas day', '1. weihnachtstag', 'weihnachten'],
+            "Boxing Day": ['boxing day', '2. weihnachtstag'],
+            "Whit Monday": ['whit monday', 'pfingstmontag'],
+            "German Unity Day": ['german unity', 'tag der deutschen einheit'],
+        }
+
+        for holiday_name, keywords in holiday_keywords.items():
+            if any(keyword in text_lower for keyword in keywords):
+                return holiday_name
+
+        # Infer from date (common German holidays)
+        if date.month == 1 and date.day == 1:
+            return "New Year's Day"
+        elif date.month == 5 and date.day == 1:
+            return "Labour Day"
+        elif date.month == 10 and date.day == 3:
+            return "German Unity Day"
+        elif date.month == 12 and date.day == 24:
+            return "Christmas Eve"
+        elif date.month == 12 and date.day == 25:
+            return "Christmas Day"
+        elif date.month == 12 and date.day == 26:
+            return "Boxing Day"
+
+        # Default to formatted date
+        return date.strftime('%B %d')
 
     # =========================================================================
     # EUROPE - Euronext (All 7 exchanges)
