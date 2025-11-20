@@ -32,6 +32,7 @@ class ExchangeExtractors:
             'XOSE': self.extract_jpx,  # Osaka Exchange (same source as JPX)
             'IFUS': self.extract_ice_futures,  # ICE Futures US (PDF)
             'IFEU': self.extract_ice_futures,  # ICE Futures Europe (same PDF)
+            'IFSG': self.extract_ice_futures_singapore,  # ICE Futures Singapore (PDF)
             'XEUR': self.extract_eurex,
             'XCME': self.extract_cme,
             'XHKG': self.extract_hkex,
@@ -39,6 +40,8 @@ class ExchangeExtractors:
             'XNDE': self.extract_nasdaq_commodities,
             'NDEX': self.extract_ice_endex,
             'XLME': self.extract_lme,  # London Metal Exchange
+            'XMOD': self.extract_montreal,  # Montreal Exchange (TMX)
+            'XASX': self.extract_asx,  # Australian Securities Exchange
             # Euronext exchanges (all 7 use same extractor)
             'XPAR': self.extract_euronext,  # Euronext Paris
             'XAMS': self.extract_euronext,  # Euronext Amsterdam
@@ -1196,6 +1199,238 @@ class ExchangeExtractors:
         day = ((h + l - 7 * m + 114) % 31) + 1
 
         return datetime(year, month, day)
+
+    # =========================================================================
+    # CANADA - Montreal Exchange (TMX)
+    # =========================================================================
+
+    def extract_montreal(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from Montreal Exchange trading hours and holidays page
+
+        URL: https://www.m-x.ca/en/trading/data/trading-hours-and-holidays
+
+        Structure:
+        - First table contains holiday calendar for current/next year
+        - Format: "Date + Holiday Name" | "Interest Rate Status" | "Other Derivatives Status"
+        - Example: "January 1, 2025New Year's Day" | "Closed" | "Closed"
+
+        Returns:
+            List of holiday dictionaries
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+
+        # Find the first table (holiday calendar)
+        tables = soup.find_all('table')
+        if not tables:
+            return []
+
+        holiday_table = tables[0]
+        rows = holiday_table.find_all('tr')
+
+        for row in rows:
+            cells = row.find_all(['td', 'th'])
+            if len(cells) < 3:
+                continue
+
+            # First cell contains date and holiday name together
+            date_holiday_text = cells[0].get_text(strip=True)
+
+            # Skip header rows and year markers
+            if not date_holiday_text or date_holiday_text.isdigit() or len(date_holiday_text) < 10:
+                continue
+
+            # Interest rate status
+            interest_rate_status = cells[1].get_text(strip=True)
+            # Other derivatives status
+            other_status = cells[2].get_text(strip=True)
+
+            # Parse date and holiday name
+            # Format: "January 1, 2025New Year's Day" or "February 14, 2025Day preceding Family Day"
+            # Split on year (20XX)
+            import re
+            match = re.search(r'([A-Za-z]+\s+\d{1,2},\s+\d{4})(.+)', date_holiday_text)
+            if not match:
+                continue
+
+            date_str = match.group(1)  # "January 1, 2025"
+            holiday_name = match.group(2).strip()  # "New Year's Day"
+
+            # Parse the date
+            parsed_date = self.scraper.parse_date(date_str)
+            if not parsed_date:
+                continue
+
+            # Determine if it's a full closure or early close
+            is_full_closure = 'closed' in interest_rate_status.lower() and 'closed' in other_status.lower()
+            early_close_time = None
+
+            if 'closing at' in interest_rate_status.lower() or 'closing at' in other_status.lower():
+                # Extract early close time
+                time_match = re.search(r'(\d{1,2}:\d{2}\s*[ap]\.?m\.?)', interest_rate_status + ' ' + other_status, re.IGNORECASE)
+                if time_match:
+                    early_close_time = time_match.group(1)
+                is_full_closure = False
+
+            # Add holiday
+            holidays.append({
+                'iso_code': iso_code,
+                'holiday_date': parsed_date,
+                'holiday_name': holiday_name,
+                'holiday_description': f"{holiday_name} - IR: {interest_rate_status}, Other: {other_status}",
+                'products_trading': None,
+                'is_full_closure': is_full_closure,
+                'early_close_time': early_close_time
+            })
+
+        return holidays
+
+    # =========================================================================
+    # AUSTRALIA - ASX (Australian Securities Exchange)
+    # =========================================================================
+
+    def extract_asx(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from ASX 24 derivatives trading calendar
+
+        URL: https://www.asx.com.au/markets/market-resources/asx-24-trading-calendar
+
+        The page lists public holidays and trading days for ASX 24 derivatives market.
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+        current_year = datetime.now().year
+
+        # Look for tables with holiday information
+        tables = soup.find_all('table')
+
+        for table in tables:
+            rows = table.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 2:
+                    continue
+
+                # Look for date patterns in cells
+                for i, cell in enumerate(cells):
+                    cell_text = cell.get_text(strip=True)
+
+                    # Try to parse as a date
+                    parsed_date = self.scraper.parse_date(cell_text)
+                    if parsed_date:
+                        # Look for holiday name in adjacent cells or same cell
+                        holiday_name = None
+
+                        # Check next cell
+                        if i + 1 < len(cells):
+                            next_text = cells[i + 1].get_text(strip=True)
+                            if next_text and not self.scraper.parse_date(next_text):
+                                holiday_name = next_text
+
+                        # Check if holiday name is in same cell after date
+                        if not holiday_name:
+                            # Remove date from cell text to get holiday name
+                            remaining = cell_text.replace(parsed_date, '').strip()
+                            if remaining:
+                                holiday_name = remaining
+
+                        if holiday_name and holiday_name.lower() not in ['date', 'day', 'trading', 'status']:
+                            holidays.append({
+                                'iso_code': iso_code,
+                                'holiday_date': parsed_date,
+                                'holiday_name': holiday_name,
+                                'holiday_description': holiday_name,
+                                'products_trading': None,
+                                'is_full_closure': True,
+                                'early_close_time': None
+                            })
+                            break
+
+        return holidays
+
+    # =========================================================================
+    # SINGAPORE - ICE Futures Singapore (PDF)
+    # =========================================================================
+
+    def extract_ice_futures_singapore(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from ICE Futures Singapore PDF trading schedule
+
+        URL: https://www.ice.com/publicdocs/futures/IFSG_Trading_Schedule.pdf
+
+        Similar format to other ICE PDFs - lists holidays with closure status.
+        """
+        success, content_bytes, _, _ = self.scraper.fetch_url(url, binary=True)
+        if not success:
+            return []
+
+        holidays = []
+        current_year = datetime.now().year
+
+        try:
+            with pdfplumber.open(io.BytesIO(content_bytes)) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if not text:
+                        continue
+
+                    lines = text.split('\n')
+
+                    # Look for holiday patterns
+                    # ICE PDFs typically format: "Date | Holiday Name | Status"
+                    for line in lines:
+                        # Look for lines with "Closed" or "Holiday"
+                        if any(indicator in line for indicator in ['Closed', 'Holiday', 'CLOSED']):
+                            # Try to extract date
+                            # Common patterns in ICE PDFs: "Monday, 1 January 2025", "1 January 2025", "01/01/2025"
+
+                            # Try various date patterns
+                            import re
+                            date_patterns = [
+                                r'(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})',
+                                r'((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})',
+                                r'(\d{1,2}/\d{1,2}/\d{4})',
+                            ]
+
+                            for pattern in date_patterns:
+                                matches = re.findall(pattern, line, re.IGNORECASE)
+                                for date_str in matches:
+                                    parsed_date = self.scraper.parse_date(date_str)
+                                    if parsed_date:
+                                        # Extract holiday name from line
+                                        holiday_name = line.strip()
+
+                                        # Clean up the name (remove date and status indicators)
+                                        for remove in [date_str, 'Closed', 'CLOSED', 'Holiday', 'HOLIDAY']:
+                                            holiday_name = holiday_name.replace(remove, '')
+                                        holiday_name = holiday_name.strip(' -|')
+
+                                        if holiday_name:
+                                            holidays.append({
+                                                'iso_code': iso_code,
+                                                'holiday_date': parsed_date,
+                                                'holiday_name': holiday_name,
+                                                'holiday_description': holiday_name,
+                                                'products_trading': None,
+                                                'is_full_closure': True,
+                                                'early_close_time': None
+                                            })
+                                        break
+
+        except Exception as e:
+            print(f"[ICE Futures Singapore] Error parsing PDF: {e}")
+
+        return holidays
 
 
 # =========================================================================

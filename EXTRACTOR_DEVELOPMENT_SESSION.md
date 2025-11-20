@@ -101,42 +101,82 @@ Continued building custom extractors for exchange holiday calendars, focusing on
 - XATH (Athens ATHEX)
 - **Status**: Need to search for updated URLs on exchange websites
 
+## Additional Work Completed (Second Phase)
+
+### 3. Built Extractors for Accessible Exchanges
+After finding Chinese exchanges had technical limitations (JavaScript rendering, 2024-only data), pivoted to other accessible candidates from master branch:
+
+**Successfully Implemented (3 new extractors):**
+
+1. **XMOD (Montreal Exchange / TMX)**
+   - URL: https://www.m-x.ca/en/trading/data/trading-hours-and-holidays
+   - Type: HTML table parser
+   - **Extracted: 47 holidays** including early close times
+   - Handles product-specific closures (Interest Rate vs Other Derivatives)
+   - Coverage: 2025 full calendar
+
+2. **XASX (Australian Securities Exchange)**
+   - URL: https://www.asx.com.au/markets/market-resources/asx-24-trading-calendar
+   - Type: HTML table parser
+   - **Extracted: 1 holiday** (basic implementation, can be improved)
+   - Coverage: 2024-2025
+
+3. **IFSG (ICE Futures Singapore)**
+   - URL: https://www.ice.com/publicdocs/futures/IFSG_Trading_Schedule.pdf
+   - Type: PDF parser
+   - **Extracted: 6 holidays** for 2025-2026
+   - Follows ICE PDF format patterns
+
+### Chinese Exchanges Analysis Results
+- **XZCE**: Has 2024 data only, 2025 URL not yet available
+- **XSGE**: Notices page, no direct calendar table
+- **CCFX**: JavaScript-rendered calendar (requires browser automation)
+- **XDCE**: 412 Precondition Failed
+- **All**: Deferred pending 2025 data availability or browser automation
+
 ## Next Steps
 
-### Priority 1: Quick Wins
-1. Implement extractors for accessible Chinese exchanges (XZCE, XSGE, CCFX)
-2. Update URLs for European 404 exchanges
-3. Test and validate new extractors
+### Priority 1: Testing & Validation
+1. Improve XASX extractor to capture more holidays
+2. Validate extracted data against official sources
+3. Add data quality checks
 
 ### Priority 2: Browser Automation
 1. Set up Selenium/Playwright environment
 2. Implement CME Group extractor with browser
 3. Implement HKEX extractor with browser
-4. Add B3 Brasil extractor
+4. Implement CCFX (China Financial Futures) with browser
+5. Add B3 Brasil extractor
 
 ### Priority 3: Enhancement
-1. Improve Eurex PDF extraction
-2. Add retry logic for intermittent SSL failures
-3. Implement smart URL discovery for 404 exchanges
-4. Add OCR support for image-based PDFs (LME)
+1. Implement extractors for other accessible exchanges from master branch
+2. Improve Eurex PDF extraction
+3. Add retry logic for intermittent SSL failures
+4. Implement smart URL discovery for 404 exchanges
+5. Add OCR support for image-based PDFs (LME)
 
 ## Files Modified
 - `exchanges_data.csv` - Updated 7 exchange URLs with verified data from master branch
-- `extractors.py` - (No changes this session, ready for new extractors)
+- `extractors.py` - **Added 3 new extractors (XMOD, XASX, IFSG)**, total now **11 custom extractors**
+- `EXTRACTOR_DEVELOPMENT_SESSION.md` - Comprehensive session documentation
 
 ## Testing Performed
 - URL accessibility testing for all updated exchanges
-- HTML structure analysis for XZCE, XSGE, CCFX
+- HTML structure analysis for XZCE, XSGE, CCFX, XMOD, XASX
+- PDF structure analysis for IFSG
 - Anti-bot detection testing for CME Group
 - SSL handshake testing for Chinese exchanges
+- **Live extraction testing**: XMOD (47 holidays), XASX (1 holiday), IFSG (6 holidays)
 
 ## Recommendations
-1. **Immediate**: Focus on the 3 accessible Chinese exchanges for quick coverage improvement
-2. **Short-term**: Implement browser automation infrastructure for CME, HKEX, B3
+1. **Immediate**: Improve XASX extractor and test with production data
+2. **Short-term**: Implement browser automation infrastructure for CME, HKEX, CCFX, B3
 3. **Long-term**: Build URL discovery system to automatically find updated calendar URLs
+4. **Future**: Monitor Chinese exchanges for 2025 calendar publication
 
 ## Success Metrics
-- Current operational rate: 82% (42/51)
+- **Previous**: 82% operational (42/51), 8 custom extractors
+- **Current**: ~86% operational (44/51), **11 custom extractors**
+- **New holidays extracted**: 54+ (47 XMOD + 1 XASX + 6 IFSG)
 - Target operational rate: 90%+ (46/51)
-- With 3 Chinese exchanges: ~88% (45/51)
-- With browser automation (CME, HKEX, B3): ~94% (48/51)
+- With browser automation (CME, HKEX, CCFX, B3): ~94% (48/51)
