@@ -5,6 +5,7 @@ A comprehensive Python system for tracking and synchronizing holiday calendars f
 ## Features
 
 - **Global Exchange Coverage**: Tracks 50+ derivative exchanges worldwide across North America, Latin America, Europe, Asia-Pacific, Middle East, and Africa
+- **Browser Automation**: Playwright-powered automation for JavaScript-rendered pages and anti-bot protection (supports 7+ exchanges)
 - **Automated Scraping**: Extracts holiday data from various formats (HTML, PDF, tables)
 - **Intelligent URL Discovery**: Automatically finds alternative calendar URLs when primary URLs fail
 - **Change Tracking**: Maintains complete audit trail of all changes to holiday data
@@ -110,7 +111,27 @@ Tracks synchronization runs.
    pip install -r requirements.txt
    ```
 
-3. **Initialize the database**
+3. **Install browser automation (for JavaScript-rendered pages)**
+
+   Some exchanges require browser automation to bypass anti-bot protection or render JavaScript content:
+
+   ```bash
+   # Install Playwright browsers
+   playwright install chromium
+   ```
+
+   **Exchanges using browser automation:**
+   - CME Group (XCME) - Anti-bot protection
+   - Hong Kong Exchange (XHKG) - JavaScript rendering
+   - Korea Exchange (XKRX) - JavaScript rendering
+   - B3 Brasil (BVMF) - Bot protection
+   - New Zealand Exchange (XNZE) - JavaScript rendering
+   - BME Spanish Exchanges (XMCE) - JavaScript rendering
+   - Moscow Exchange (MISX) - JavaScript rendering
+
+   **Note:** Browser automation adds ~200MB for Chromium browser and may slow down scraping, but it's required for ~10-15 exchanges with JavaScript-rendered content or anti-bot systems.
+
+4. **Initialize the database**
    ```bash
    python init_database.py
    ```
@@ -182,6 +203,46 @@ python sync_holidays.py --db /path/to/database.db
 
 ```bash
 python sync_holidays.py --exchanges XCME IFUS --verbose --no-email
+```
+
+## Testing Browser Automation
+
+A dedicated test script is provided to verify browser automation functionality:
+
+### Test a Specific Exchange
+
+```bash
+python test_browser_automation.py XCME
+```
+
+### Test All Browser Automation Extractors
+
+```bash
+python test_browser_automation.py all
+```
+
+This will test all 7 exchanges that use browser automation and display:
+- Success/failure status for each exchange
+- Sample holidays extracted
+- Summary statistics and success rate
+
+**Available exchanges for testing:**
+- `XCME` - CME Group
+- `XHKG` - Hong Kong Exchange
+- `XKRX` - Korea Exchange
+- `BVMF` - B3 Brasil
+- `XNZE` - New Zealand Exchange
+- `XMCE` - BME Spanish Exchanges
+- `MISX` - Moscow Exchange
+
+**Example output:**
+```
+✅ XCME        SUCCESS
+✅ XHKG        SUCCESS
+⚠️  XKRX        NO DATA
+❌ BVMF        ERROR: Timeout
+
+Success Rate: 85.7%
 ```
 
 ## Supported Exchanges

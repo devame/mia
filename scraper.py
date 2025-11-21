@@ -17,17 +17,21 @@ import time
 class HolidayScraper:
     """Base scraper class for extracting holiday data from exchange websites"""
 
-    def __init__(self, timeout=30, retry_attempts=3):
+    def __init__(self, timeout=30, retry_attempts=3, use_browser=False):
         """
         Initialize the scraper
 
         Args:
             timeout: Request timeout in seconds
             retry_attempts: Number of retry attempts for failed requests
+            use_browser: Enable browser automation for JavaScript-rendered pages
         """
         self.timeout = timeout
         self.retry_attempts = retry_attempts
+        self.use_browser = use_browser
         self.session = requests.Session()
+        self._browser = None
+        self._playwright = None
 
         # Initialize exchange-specific extractors
         # Import here to avoid circular dependency
@@ -105,6 +109,109 @@ class HolidayScraper:
                     potential_urls.append(full_url)
 
         return potential_urls
+
+    def _init_browser(self):
+        """Initialize Playwright browser instance (lazy initialization)"""
+        if self._playwright is None:
+            try:
+                from playwright.sync_api import sync_playwright
+                self._playwright = sync_playwright().start()
+                self._browser = self._playwright.chromium.launch(
+                    headless=True,
+                    args=['--disable-blink-features=AutomationControlled']
+                )
+                print("[INFO] Browser automation initialized")
+            except ImportError:
+                print("[ERROR] Playwright not installed. Run: pip install playwright && playwright install chromium")
+                raise
+            except Exception as e:
+                print(f"[ERROR] Failed to initialize browser: {e}")
+                raise
+
+    def _close_browser(self):
+        """Close browser and cleanup resources"""
+        if self._browser:
+            try:
+                self._browser.close()
+            except Exception as e:
+                print(f"[WARN] Error closing browser: {e}")
+        if self._playwright:
+            try:
+                self._playwright.stop()
+            except Exception as e:
+                print(f"[WARN] Error stopping playwright: {e}")
+        self._browser = None
+        self._playwright = None
+
+    def fetch_url_with_browser(self, url: str, wait_for_selector: str = None,
+                               wait_time: int = 5000, execute_js: str = None) -> Tuple[bool, Optional[str], Optional[int], Optional[str]]:
+        """
+        Fetch content from URL using browser automation (Playwright)
+
+        Useful for:
+        - JavaScript-rendered content
+        - Anti-bot protection (403/503 errors)
+        - Dynamic content loading
+
+        Args:
+            url: URL to fetch
+            wait_for_selector: CSS selector to wait for before extracting content
+            wait_time: Maximum time to wait in milliseconds (default: 5000)
+            execute_js: Optional JavaScript to execute before extracting content
+
+        Returns:
+            Tuple of (success, content, status_code, error_message)
+        """
+        try:
+            # Initialize browser if needed
+            if self._browser is None:
+                self._init_browser()
+
+            # Create new page
+            page = self._browser.new_page()
+
+            try:
+                # Navigate to URL
+                response = page.goto(url, wait_until='networkidle', timeout=self.timeout * 1000)
+                status_code = response.status if response else None
+
+                # Wait for specific selector if provided
+                if wait_for_selector:
+                    try:
+                        page.wait_for_selector(wait_for_selector, timeout=wait_time)
+                    except Exception as e:
+                        print(f"[WARN] Selector '{wait_for_selector}' not found: {e}")
+                else:
+                    # Default wait for page to be ready
+                    page.wait_for_load_state('domcontentloaded')
+
+                # Execute custom JavaScript if provided
+                if execute_js:
+                    try:
+                        page.evaluate(execute_js)
+                    except Exception as e:
+                        print(f"[WARN] JavaScript execution failed: {e}")
+
+                # Extract HTML content
+                content = page.content()
+
+                return True, content, status_code, None
+
+            finally:
+                page.close()
+
+        except Exception as e:
+            error_msg = f"Browser automation failed: {str(e)}"
+            print(f"[ERROR] {error_msg}")
+            return False, None, None, error_msg
+
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - cleanup browser resources"""
+        self._close_browser()
 
     def parse_date(self, date_str: str) -> Optional[str]:
         """

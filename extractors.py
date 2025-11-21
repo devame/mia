@@ -704,18 +704,107 @@ class ExchangeExtractors:
         URL: https://www.cmegroup.com/trading-hours.html
 
         Note: CME blocks basic scraper requests (403 Forbidden)
-        May need enhanced headers or alternative URL
+        Uses browser automation to bypass anti-bot protection
         """
-        success, content, _, _ = self.scraper.fetch_url(url)
+        # Try browser automation first (CME blocks regular requests)
+        print(f"[INFO] CME: Using browser automation to bypass anti-bot protection")
+        success, content, status_code, error = self.scraper.fetch_url_with_browser(
+            url,
+            wait_for_selector='table, .table, [class*="holiday"], [class*="calendar"]',
+            wait_time=10000
+        )
+
         if not success:
+            print(f"[ERROR] CME browser fetch failed: {error}")
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
         holidays = []
 
-        # TODO: CME blocks scrapers - need to handle
-        print(f"[DEBUG] CME extractor needs implementation (currently blocked)")
+        # CME typically has holiday information in tables or specific sections
+        # Look for holiday-related tables
+        tables = soup.find_all('table')
 
+        for table in tables:
+            # Check if table contains holiday information
+            table_text = table.get_text().lower()
+            if 'holiday' in table_text or 'closed' in table_text or 'closure' in table_text:
+                rows = table.find_all('tr')
+
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) < 2:
+                        continue
+
+                    # Try to find date and holiday name
+                    for i, cell in enumerate(cells):
+                        cell_text = cell.get_text(strip=True)
+                        parsed_date = self.scraper.parse_date(cell_text)
+
+                        if parsed_date:
+                            # Found a date, look for holiday name in adjacent cells
+                            holiday_name = None
+
+                            for j in range(len(cells)):
+                                if j != i:
+                                    text = cells[j].get_text(strip=True)
+                                    if text and not self.scraper.parse_date(text) and len(text) > 2:
+                                        holiday_name = text
+                                        break
+
+                            if holiday_name and holiday_name.lower() not in ['date', 'day', 'holiday']:
+                                holiday = {
+                                    'iso_code': iso_code,
+                                    'holiday_date': parsed_date,
+                                    'holiday_name': holiday_name,
+                                    'holiday_description': None,
+                                    'products_trading': None,
+                                    'is_full_closure': True,
+                                    'early_close_time': None
+                                }
+
+                                # Check for early close indicators
+                                row_text = row.get_text().lower()
+                                if 'early close' in row_text or 'early closing' in row_text:
+                                    holiday['is_full_closure'] = False
+                                    time_match = re.search(r'(\d{1,2}):(\d{2})\s*(am|pm|ct|et)?', row_text, re.IGNORECASE)
+                                    if time_match:
+                                        holiday['early_close_time'] = time_match.group(0)
+
+                                holidays.append(holiday)
+                                break
+
+        # Also look for divs or sections with holiday information
+        holiday_sections = soup.find_all(['div', 'section'], class_=re.compile(r'holiday|calendar', re.IGNORECASE))
+
+        for section in holiday_sections:
+            # Extract dates and holiday names from the section
+            text_content = section.get_text()
+            lines = text_content.split('\n')
+
+            for i, line in enumerate(lines):
+                parsed_date = self.scraper.parse_date(line)
+                if parsed_date:
+                    # Look for holiday name in nearby lines
+                    holiday_name = None
+                    for j in range(max(0, i-2), min(len(lines), i+3)):
+                        if j != i and lines[j].strip() and not self.scraper.parse_date(lines[j]):
+                            holiday_name = lines[j].strip()
+                            break
+
+                    if holiday_name and len(holiday_name) > 2:
+                        holiday = {
+                            'iso_code': iso_code,
+                            'holiday_date': parsed_date,
+                            'holiday_name': holiday_name,
+                            'holiday_description': None,
+                            'products_trading': None,
+                            'is_full_closure': True,
+                            'early_close_time': None
+                        }
+                        holidays.append(holiday)
+
+        print(f"[INFO] CME: Found {len(holidays)} holidays")
         return holidays
 
     # =========================================================================
@@ -729,20 +818,91 @@ class ExchangeExtractors:
         URL: https://www.hkex.com.hk/Services/Trading/Derivatives/Overview/Trading-Calendar-and-Holiday-Schedule?sc_lang=en
 
         HKEX has detailed calendar with market segments and trading hours.
+        Uses browser automation for JavaScript-rendered content.
         """
-        success, content, _, _ = self.scraper.fetch_url(url)
+        print(f"[INFO] HKEX: Using browser automation for JavaScript-rendered content")
+        success, content, status_code, error = self.scraper.fetch_url_with_browser(
+            url,
+            wait_for_selector='table',
+            wait_time=10000
+        )
+
         if not success:
+            print(f"[ERROR] HKEX browser fetch failed: {error}")
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
         holidays = []
 
-        # TODO: Inspect actual HKEX page structure
-        print(f"[DEBUG] HKEX extractor needs implementation")
-
+        # HKEX typically has holiday information in tables
         tables = soup.find_all('table')
-        print(f"[DEBUG] Found {len(tables)} tables")
+        print(f"[INFO] HKEX: Found {len(tables)} tables")
 
+        for table in tables:
+            # Check if this table contains holiday information
+            table_text = table.get_text().lower()
+            if not any(keyword in table_text for keyword in ['holiday', 'public', 'closed', 'closure']):
+                continue
+
+            rows = table.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 2:
+                    continue
+
+                # Try to extract date and holiday name
+                date_found = None
+                holiday_name = None
+
+                for i, cell in enumerate(cells):
+                    cell_text = cell.get_text(strip=True)
+                    parsed_date = self.scraper.parse_date(cell_text)
+
+                    if parsed_date and not date_found:
+                        date_found = parsed_date
+
+                        # Look for holiday name in subsequent cells
+                        for j in range(i + 1, len(cells)):
+                            text = cells[j].get_text(strip=True)
+                            if text and len(text) > 2 and not self.scraper.parse_date(text):
+                                # Skip common header/label text
+                                if text.lower() not in ['date', 'day', 'holiday', 'weekday', 'remarks', 'note', 'notes']:
+                                    holiday_name = text
+                                    break
+
+                        if holiday_name:
+                            holiday = {
+                                'iso_code': iso_code,
+                                'holiday_date': date_found,
+                                'holiday_name': holiday_name,
+                                'holiday_description': None,
+                                'products_trading': None,
+                                'is_full_closure': True,
+                                'early_close_time': None
+                            }
+
+                            # Check for partial closure or early close
+                            row_text = row.get_text().lower()
+                            if any(keyword in row_text for keyword in ['half day', 'half-day', 'early close', 'early closing', 'partial']):
+                                holiday['is_full_closure'] = False
+                                time_match = re.search(r'(\d{1,2}):(\d{2})\s*(am|pm|hkt)?', row_text, re.IGNORECASE)
+                                if time_match:
+                                    holiday['early_close_time'] = time_match.group(0)
+
+                            # Check for products still trading
+                            if 'trading' in row_text and any(prod in row_text for prod in ['product', 'market', 'segment']):
+                                # Try to extract which products are trading
+                                for cell in cells:
+                                    text = cell.get_text(strip=True).lower()
+                                    if 'trading' in text or 'open' in text:
+                                        holiday['products_trading'] = cell.get_text(strip=True)
+                                        break
+
+                            holidays.append(holiday)
+                            break
+
+        print(f"[INFO] HKEX: Found {len(holidays)} holidays")
         return holidays
 
     # =========================================================================
@@ -755,18 +915,83 @@ class ExchangeExtractors:
 
         URL: https://www.b3.com.br/en_us/solutions/platforms/puma-trading-system/for-members-and-traders/trading-calendar/holidays/
 
-        Note: B3 returns 503 - may have bot protection
+        Note: B3 returns 503 - uses browser automation to bypass bot protection
         """
-        success, content, _, _ = self.scraper.fetch_url(url)
+        print(f"[INFO] B3: Using browser automation to bypass bot protection")
+        success, content, status_code, error = self.scraper.fetch_url_with_browser(
+            url,
+            wait_for_selector='table, .table, [class*="calendar"], [class*="holiday"]',
+            wait_time=10000
+        )
+
         if not success:
+            print(f"[ERROR] B3 browser fetch failed: {error}")
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
         holidays = []
 
-        # TODO: Handle B3 bot protection and implement parser
-        print(f"[DEBUG] B3 extractor needs implementation (currently blocked)")
+        # B3 typically has holiday information in tables
+        tables = soup.find_all('table')
+        print(f"[INFO] B3: Found {len(tables)} tables")
 
+        for table in tables:
+            # Check if table contains holiday information
+            table_text = table.get_text().lower()
+            if not any(keyword in table_text for keyword in ['holiday', 'feriado', 'closed', 'closure', 'data', 'date']):
+                continue
+
+            rows = table.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 2:
+                    continue
+
+                # Try to extract date and holiday name
+                date_found = None
+                holiday_name = None
+
+                for i, cell in enumerate(cells):
+                    cell_text = cell.get_text(strip=True)
+                    parsed_date = self.scraper.parse_date(cell_text)
+
+                    if parsed_date and not date_found:
+                        date_found = parsed_date
+
+                        # Look for holiday name in other cells
+                        for j in range(len(cells)):
+                            if j != i:
+                                text = cells[j].get_text(strip=True)
+                                if text and len(text) > 2 and not self.scraper.parse_date(text):
+                                    # Skip common headers
+                                    if text.lower() not in ['date', 'data', 'day', 'dia', 'holiday', 'feriado', 'weekday']:
+                                        holiday_name = text
+                                        break
+
+                        if holiday_name:
+                            holiday = {
+                                'iso_code': iso_code,
+                                'holiday_date': date_found,
+                                'holiday_name': holiday_name,
+                                'holiday_description': None,
+                                'products_trading': None,
+                                'is_full_closure': True,
+                                'early_close_time': None
+                            }
+
+                            # Check for early close or partial trading
+                            row_text = row.get_text().lower()
+                            if any(keyword in row_text for keyword in ['early close', 'early closing', 'fechamento antecipado', 'parcial']):
+                                holiday['is_full_closure'] = False
+                                time_match = re.search(r'(\d{1,2}):(\d{2})\s*(h|am|pm)?', row_text, re.IGNORECASE)
+                                if time_match:
+                                    holiday['early_close_time'] = time_match.group(0)
+
+                            holidays.append(holiday)
+                            break
+
+        print(f"[INFO] B3: Found {len(holidays)} holidays")
         return holidays
 
     # =========================================================================
@@ -1548,10 +1773,18 @@ class ExchangeExtractors:
 
         URL: https://global.krx.co.kr/contents/GLB/05/0501/0501110000/GLB0501110000.jsp
 
-        Structure: HTML page with holiday calendar (structure to be determined)
+        Structure: HTML page with holiday calendar
+        Uses browser automation for JavaScript-rendered content
         """
-        success, content, _, _ = self.scraper.fetch_url(url)
+        print(f"[INFO] KRX: Using browser automation for JavaScript-rendered content")
+        success, content, status_code, error = self.scraper.fetch_url_with_browser(
+            url,
+            wait_for_selector='table',
+            wait_time=10000
+        )
+
         if not success:
+            print(f"[ERROR] KRX browser fetch failed: {error}")
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
@@ -1559,6 +1792,7 @@ class ExchangeExtractors:
 
         # Find tables
         tables = soup.find_all('table')
+        print(f"[INFO] KRX: Found {len(tables)} tables")
 
         for table in tables:
             rows = table.find_all('tr')
@@ -1568,31 +1802,41 @@ class ExchangeExtractors:
                 if len(cells) < 2:
                     continue
 
-                # Look for date patterns in cells
-                for cell in cells:
-                    text = cell.get_text().strip()
+                # Try to extract date and holiday name from cells
+                date_found = None
+                holiday_name = None
 
-                    # Look for year-specific content
-                    if '2025' in text or '2026' in text:
-                        # Try to extract date and holiday name
-                        date_match = re.search(r'(\d{4}[-./]\d{1,2}[-./]\d{1,2})', text)
-                        if date_match:
-                            date_str = date_match.group(1)
-                            parsed_date = self.scraper.parse_date(date_str)
-                            if parsed_date:
-                                # Extract holiday name (text before or after date)
-                                holiday_name = re.sub(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}', '', text).strip()
-                                if holiday_name:
-                                    holidays.append({
-                                        'iso_code': iso_code,
-                                        'holiday_date': parsed_date,
-                                        'holiday_name': holiday_name,
-                                        'holiday_description': holiday_name,
-                                        'products_trading': None,
-                                        'is_full_closure': True,
-                                        'early_close_time': None
-                                    })
+                for i, cell in enumerate(cells):
+                    cell_text = cell.get_text(strip=True)
+                    parsed_date = self.scraper.parse_date(cell_text)
 
+                    if parsed_date and not date_found:
+                        date_found = parsed_date
+
+                        # Look for holiday name in other cells
+                        for j in range(len(cells)):
+                            if j != i:
+                                text = cells[j].get_text(strip=True)
+                                if text and len(text) > 2 and not self.scraper.parse_date(text):
+                                    # Skip common headers
+                                    if text.lower() not in ['date', 'day', 'holiday', 'weekday', 'no.', 'remarks']:
+                                        holiday_name = text
+                                        break
+
+                        if holiday_name:
+                            holiday = {
+                                'iso_code': iso_code,
+                                'holiday_date': date_found,
+                                'holiday_name': holiday_name,
+                                'holiday_description': None,
+                                'products_trading': None,
+                                'is_full_closure': True,
+                                'early_close_time': None
+                            }
+                            holidays.append(holiday)
+                            break
+
+        print(f"[INFO] KRX: Found {len(holidays)} holidays")
         return holidays
 
     # =========================================================================
@@ -1605,10 +1849,18 @@ class ExchangeExtractors:
 
         URL: https://www.nzx.com/announcements/443000
 
-        Structure: HTML page with announcement (structure to be determined)
+        Structure: HTML page with announcement
+        Uses browser automation for JavaScript-rendered content
         """
-        success, content, _, _ = self.scraper.fetch_url(url)
+        print(f"[INFO] NZX: Using browser automation for JavaScript-rendered content")
+        success, content, status_code, error = self.scraper.fetch_url_with_browser(
+            url,
+            wait_for_selector='table, .announcement-content, [class*="calendar"]',
+            wait_time=10000
+        )
+
         if not success:
+            print(f"[ERROR] NZX browser fetch failed: {error}")
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
@@ -1616,6 +1868,7 @@ class ExchangeExtractors:
 
         # Look for tables
         tables = soup.find_all('table')
+        print(f"[INFO] NZX: Found {len(tables)} tables")
 
         for table in tables:
             rows = table.find_all('tr')
@@ -1625,22 +1878,41 @@ class ExchangeExtractors:
                 if len(cells) < 2:
                     continue
 
-                # Look for holiday data
-                date_text = cells[0].get_text().strip() if len(cells) > 0 else ''
-                name_text = cells[1].get_text().strip() if len(cells) > 1 else ''
+                # Try to extract date and holiday name from cells
+                date_found = None
+                holiday_name = None
 
-                parsed_date = self.scraper.parse_date(date_text)
-                if parsed_date and name_text:
-                    holidays.append({
-                        'iso_code': iso_code,
-                        'holiday_date': parsed_date,
-                        'holiday_name': name_text,
-                        'holiday_description': name_text,
-                        'products_trading': None,
-                        'is_full_closure': True,
-                        'early_close_time': None
-                    })
+                for i, cell in enumerate(cells):
+                    cell_text = cell.get_text(strip=True)
+                    parsed_date = self.scraper.parse_date(cell_text)
 
+                    if parsed_date and not date_found:
+                        date_found = parsed_date
+
+                        # Look for holiday name in other cells
+                        for j in range(len(cells)):
+                            if j != i:
+                                text = cells[j].get_text(strip=True)
+                                if text and len(text) > 2 and not self.scraper.parse_date(text):
+                                    # Skip common headers
+                                    if text.lower() not in ['date', 'day', 'holiday', 'weekday', 'remarks', 'status']:
+                                        holiday_name = text
+                                        break
+
+                        if holiday_name:
+                            holiday = {
+                                'iso_code': iso_code,
+                                'holiday_date': date_found,
+                                'holiday_name': holiday_name,
+                                'holiday_description': None,
+                                'products_trading': None,
+                                'is_full_closure': True,
+                                'early_close_time': None
+                            }
+                            holidays.append(holiday)
+                            break
+
+        print(f"[INFO] NZX: Found {len(holidays)} holidays")
         return holidays
 
     # =========================================================================
@@ -1653,10 +1925,18 @@ class ExchangeExtractors:
 
         URL: https://www.bolsasymercados.es/bme-exchange/en/Trading
 
-        Structure: HTML page with trading calendar (structure to be determined)
+        Structure: HTML page with trading calendar
+        Uses browser automation for JavaScript-rendered content
         """
-        success, content, _, _ = self.scraper.fetch_url(url)
+        print(f"[INFO] BME Spanish: Using browser automation for JavaScript-rendered content")
+        success, content, status_code, error = self.scraper.fetch_url_with_browser(
+            url,
+            wait_for_selector='table, [class*="calendar"], [class*="trading"]',
+            wait_time=10000
+        )
+
         if not success:
+            print(f"[ERROR] BME Spanish browser fetch failed: {error}")
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
@@ -1664,8 +1944,14 @@ class ExchangeExtractors:
 
         # Look for tables
         tables = soup.find_all('table')
+        print(f"[INFO] BME Spanish: Found {len(tables)} tables")
 
         for table in tables:
+            # Check if table contains holiday/calendar information
+            table_text = table.get_text().lower()
+            if not any(keyword in table_text for keyword in ['holiday', 'festivo', 'closed', 'calendar', 'trading']):
+                continue
+
             rows = table.find_all('tr')
 
             for row in rows:
@@ -1673,30 +1959,41 @@ class ExchangeExtractors:
                 if len(cells) < 2:
                     continue
 
-                # Look for date patterns
+                # Try to extract date and holiday name
+                date_found = None
+                holiday_name = None
+
                 for i, cell in enumerate(cells):
-                    text = cell.get_text().strip()
-                    parsed_date = self.scraper.parse_date(text)
+                    cell_text = cell.get_text(strip=True)
+                    parsed_date = self.scraper.parse_date(cell_text)
 
-                    if parsed_date:
-                        # Look for holiday name in adjacent cells
-                        holiday_name = ''
-                        if i + 1 < len(cells):
-                            holiday_name = cells[i + 1].get_text().strip()
-                        elif i > 0:
-                            holiday_name = cells[i - 1].get_text().strip()
+                    if parsed_date and not date_found:
+                        date_found = parsed_date
 
-                        if holiday_name and len(holiday_name) < 100:
-                            holidays.append({
+                        # Look for holiday name in other cells
+                        for j in range(len(cells)):
+                            if j != i:
+                                text = cells[j].get_text(strip=True)
+                                if text and len(text) > 2 and len(text) < 100 and not self.scraper.parse_date(text):
+                                    # Skip common headers
+                                    if text.lower() not in ['date', 'fecha', 'day', 'día', 'holiday', 'festivo']:
+                                        holiday_name = text
+                                        break
+
+                        if holiday_name:
+                            holiday = {
                                 'iso_code': iso_code,
-                                'holiday_date': parsed_date,
+                                'holiday_date': date_found,
                                 'holiday_name': holiday_name,
-                                'holiday_description': holiday_name,
+                                'holiday_description': None,
                                 'products_trading': None,
                                 'is_full_closure': True,
                                 'early_close_time': None
-                            })
+                            }
+                            holidays.append(holiday)
+                            break
 
+        print(f"[INFO] BME Spanish: Found {len(holidays)} holidays")
         return holidays
 
     # =========================================================================
@@ -1709,10 +2006,18 @@ class ExchangeExtractors:
 
         URL: https://www.moex.com/en/tradingcalendar
 
-        Structure: HTML page with trading calendar (structure to be determined)
+        Structure: HTML page with trading calendar
+        Uses browser automation for JavaScript-rendered content
         """
-        success, content, _, _ = self.scraper.fetch_url(url)
+        print(f"[INFO] Moscow Exchange: Using browser automation for JavaScript-rendered content")
+        success, content, status_code, error = self.scraper.fetch_url_with_browser(
+            url,
+            wait_for_selector='table, [class*="calendar"], [class*="trading"]',
+            wait_time=10000
+        )
+
         if not success:
+            print(f"[ERROR] Moscow Exchange browser fetch failed: {error}")
             return []
 
         soup = BeautifulSoup(content, 'html.parser')
@@ -1720,8 +2025,14 @@ class ExchangeExtractors:
 
         # Look for tables
         tables = soup.find_all('table')
+        print(f"[INFO] Moscow Exchange: Found {len(tables)} tables")
 
         for table in tables:
+            # Check if table contains holiday/calendar information
+            table_text = table.get_text().lower()
+            if not any(keyword in table_text for keyword in ['holiday', 'выходной', 'closed', 'calendar', 'trading']):
+                continue
+
             rows = table.find_all('tr')
 
             for row in rows:
@@ -1729,30 +2040,41 @@ class ExchangeExtractors:
                 if len(cells) < 2:
                     continue
 
-                # Look for date and holiday name
+                # Try to extract date and holiday name
+                date_found = None
+                holiday_name = None
+
                 for i, cell in enumerate(cells):
-                    text = cell.get_text().strip()
-                    parsed_date = self.scraper.parse_date(text)
+                    cell_text = cell.get_text(strip=True)
+                    parsed_date = self.scraper.parse_date(cell_text)
 
-                    if parsed_date:
-                        # Look for holiday name in adjacent cells
-                        holiday_name = ''
-                        if i + 1 < len(cells):
-                            holiday_name = cells[i + 1].get_text().strip()
-                        elif i > 0:
-                            holiday_name = cells[i - 1].get_text().strip()
+                    if parsed_date and not date_found:
+                        date_found = parsed_date
 
-                        if holiday_name and len(holiday_name) < 100:
-                            holidays.append({
+                        # Look for holiday name in other cells
+                        for j in range(len(cells)):
+                            if j != i:
+                                text = cells[j].get_text(strip=True)
+                                if text and len(text) > 2 and len(text) < 100 and not self.scraper.parse_date(text):
+                                    # Skip common headers
+                                    if text.lower() not in ['date', 'дата', 'day', 'день', 'holiday', 'выходной']:
+                                        holiday_name = text
+                                        break
+
+                        if holiday_name:
+                            holiday = {
                                 'iso_code': iso_code,
-                                'holiday_date': parsed_date,
+                                'holiday_date': date_found,
                                 'holiday_name': holiday_name,
-                                'holiday_description': holiday_name,
+                                'holiday_description': None,
                                 'products_trading': None,
                                 'is_full_closure': True,
                                 'early_close_time': None
-                            })
+                            }
+                            holidays.append(holiday)
+                            break
 
+        print(f"[INFO] Moscow Exchange: Found {len(holidays)} holidays")
         return holidays
 
 

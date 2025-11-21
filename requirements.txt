@@ -8,6 +8,10 @@ lxml>=4.9.0
 # PDF parsing - Required for exchanges with PDF calendars
 pdfplumber>=0.10.0
 
+# Browser automation - Required for JavaScript-rendered pages and anti-bot protection
+# Supports: CME, HKEX, CCFX, B3, XKRX, XNZE, XMCE, MISX (~10 exchanges)
+playwright>=1.40.0
+
 # Database
 # sqlite3 is included in Python standard library
 
