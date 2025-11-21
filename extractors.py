@@ -50,6 +50,16 @@ class ExchangeExtractors:
             'XDUB': self.extract_euronext,  # Euronext Dublin
             'XMIL': self.extract_euronext,  # Euronext Milan
             'XOSL': self.extract_euronext,  # Euronext Oslo
+            # India exchanges
+            'XBOM': self.extract_bse_india,  # BSE India (Bombay Stock Exchange)
+            # Korea Exchange
+            'XKRX': self.extract_krx,  # Korea Exchange
+            # New Zealand
+            'XNZE': self.extract_nzx,  # New Zealand Exchange
+            # Spain
+            'XMCE': self.extract_bme_spanish,  # BME Spanish Exchanges
+            # Russia
+            'MISX': self.extract_moex,  # Moscow Exchange
             # Add more as we build them
         }
 
@@ -1429,6 +1439,319 @@ class ExchangeExtractors:
 
         except Exception as e:
             print(f"[ICE Futures Singapore] Error parsing PDF: {e}")
+
+        return holidays
+
+    # =========================================================================
+    # INDIA - BSE (Bombay Stock Exchange)
+    # =========================================================================
+
+    def extract_bse_india(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from BSE India
+
+        URL: https://www.bseindia.com/static/markets/marketinfo/listholi.aspx
+
+        Structure: Multiple HTML tables for different segments (equity, currency, commodity)
+        Table format:
+        - Column 0: SI.NO (serial number)
+        - Column 1: Holidays/Festival Name
+        - Column 2: Date (format: "February 26,2025")
+        - Column 3: Day
+        - Columns 4-5 (optional): Morning session / Evening session (for partial closures)
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+        seen_dates = set()  # To avoid duplicates by date (database has UNIQUE constraint on iso_code+date)
+
+        # Find all tables
+        tables = soup.find_all('table')
+
+        for table in tables:
+            rows = table.find_all('tr')
+            if len(rows) < 2:
+                continue
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 4:
+                    continue
+
+                # Skip header rows
+                cell_text = cells[1].get_text().strip()
+                if cell_text in ['Holidays', 'Festival Name', 'Holiday Name']:
+                    continue
+
+                # Try to parse as holiday data
+                try:
+                    serial = cells[0].get_text().strip()
+                    if not serial or not serial[0].isdigit():
+                        continue
+
+                    holiday_name = cells[1].get_text().strip()
+                    date_text = cells[2].get_text().strip()
+                    day = cells[3].get_text().strip()
+
+                    if not holiday_name or not date_text:
+                        continue
+
+                    # Normalize date text (handle inconsistent comma spacing)
+                    # "February 26,2025" -> "February 26, 2025"
+                    normalized_date = re.sub(r'(\d+),\s*(\d{4})', r'\1, \2', date_text)
+
+                    # Parse the date
+                    parsed_date = self.scraper.parse_date(normalized_date)
+                    if not parsed_date:
+                        continue
+
+                    # Check for partial closures
+                    is_full_closure = True
+                    if len(cells) >= 6:
+                        morning_status = cells[4].get_text().strip()
+                        evening_status = cells[5].get_text().strip()
+                        # If either session is open, it's not a full closure
+                        if 'Open' in morning_status or 'Open' in evening_status:
+                            is_full_closure = 'Closed' in morning_status and 'Closed' in evening_status
+
+                    # Avoid duplicate dates (database has UNIQUE constraint on iso_code+date)
+                    if parsed_date in seen_dates:
+                        continue
+
+                    seen_dates.add(parsed_date)
+
+                    holidays.append({
+                        'iso_code': iso_code,
+                        'holiday_date': parsed_date,
+                        'holiday_name': holiday_name,
+                        'holiday_description': holiday_name,
+                        'products_trading': None,
+                        'is_full_closure': is_full_closure,
+                        'early_close_time': None
+                    })
+
+                except Exception as e:
+                    continue  # Skip malformed rows
+
+        return holidays
+
+    # =========================================================================
+    # KOREA - KRX (Korea Exchange)
+    # =========================================================================
+
+    def extract_krx(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from Korea Exchange
+
+        URL: https://global.krx.co.kr/contents/GLB/05/0501/0501110000/GLB0501110000.jsp
+
+        Structure: HTML page with holiday calendar (structure to be determined)
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+
+        # Find tables
+        tables = soup.find_all('table')
+
+        for table in tables:
+            rows = table.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 2:
+                    continue
+
+                # Look for date patterns in cells
+                for cell in cells:
+                    text = cell.get_text().strip()
+
+                    # Look for year-specific content
+                    if '2025' in text or '2026' in text:
+                        # Try to extract date and holiday name
+                        date_match = re.search(r'(\d{4}[-./]\d{1,2}[-./]\d{1,2})', text)
+                        if date_match:
+                            date_str = date_match.group(1)
+                            parsed_date = self.scraper.parse_date(date_str)
+                            if parsed_date:
+                                # Extract holiday name (text before or after date)
+                                holiday_name = re.sub(r'\d{4}[-./]\d{1,2}[-./]\d{1,2}', '', text).strip()
+                                if holiday_name:
+                                    holidays.append({
+                                        'iso_code': iso_code,
+                                        'holiday_date': parsed_date,
+                                        'holiday_name': holiday_name,
+                                        'holiday_description': holiday_name,
+                                        'products_trading': None,
+                                        'is_full_closure': True,
+                                        'early_close_time': None
+                                    })
+
+        return holidays
+
+    # =========================================================================
+    # NEW ZEALAND - NZX
+    # =========================================================================
+
+    def extract_nzx(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from New Zealand Exchange
+
+        URL: https://www.nzx.com/announcements/443000
+
+        Structure: HTML page with announcement (structure to be determined)
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+
+        # Look for tables
+        tables = soup.find_all('table')
+
+        for table in tables:
+            rows = table.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 2:
+                    continue
+
+                # Look for holiday data
+                date_text = cells[0].get_text().strip() if len(cells) > 0 else ''
+                name_text = cells[1].get_text().strip() if len(cells) > 1 else ''
+
+                parsed_date = self.scraper.parse_date(date_text)
+                if parsed_date and name_text:
+                    holidays.append({
+                        'iso_code': iso_code,
+                        'holiday_date': parsed_date,
+                        'holiday_name': name_text,
+                        'holiday_description': name_text,
+                        'products_trading': None,
+                        'is_full_closure': True,
+                        'early_close_time': None
+                    })
+
+        return holidays
+
+    # =========================================================================
+    # SPAIN - BME (Bolsas y Mercados Españoles)
+    # =========================================================================
+
+    def extract_bme_spanish(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from BME Spanish Exchanges
+
+        URL: https://www.bolsasymercados.es/bme-exchange/en/Trading
+
+        Structure: HTML page with trading calendar (structure to be determined)
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+
+        # Look for tables
+        tables = soup.find_all('table')
+
+        for table in tables:
+            rows = table.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 2:
+                    continue
+
+                # Look for date patterns
+                for i, cell in enumerate(cells):
+                    text = cell.get_text().strip()
+                    parsed_date = self.scraper.parse_date(text)
+
+                    if parsed_date:
+                        # Look for holiday name in adjacent cells
+                        holiday_name = ''
+                        if i + 1 < len(cells):
+                            holiday_name = cells[i + 1].get_text().strip()
+                        elif i > 0:
+                            holiday_name = cells[i - 1].get_text().strip()
+
+                        if holiday_name and len(holiday_name) < 100:
+                            holidays.append({
+                                'iso_code': iso_code,
+                                'holiday_date': parsed_date,
+                                'holiday_name': holiday_name,
+                                'holiday_description': holiday_name,
+                                'products_trading': None,
+                                'is_full_closure': True,
+                                'early_close_time': None
+                            })
+
+        return holidays
+
+    # =========================================================================
+    # RUSSIA - MOEX (Moscow Exchange)
+    # =========================================================================
+
+    def extract_moex(self, url: str, iso_code: str) -> List[Dict]:
+        """
+        Extract holidays from Moscow Exchange
+
+        URL: https://www.moex.com/en/tradingcalendar
+
+        Structure: HTML page with trading calendar (structure to be determined)
+        """
+        success, content, _, _ = self.scraper.fetch_url(url)
+        if not success:
+            return []
+
+        soup = BeautifulSoup(content, 'html.parser')
+        holidays = []
+
+        # Look for tables
+        tables = soup.find_all('table')
+
+        for table in tables:
+            rows = table.find_all('tr')
+
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 2:
+                    continue
+
+                # Look for date and holiday name
+                for i, cell in enumerate(cells):
+                    text = cell.get_text().strip()
+                    parsed_date = self.scraper.parse_date(text)
+
+                    if parsed_date:
+                        # Look for holiday name in adjacent cells
+                        holiday_name = ''
+                        if i + 1 < len(cells):
+                            holiday_name = cells[i + 1].get_text().strip()
+                        elif i > 0:
+                            holiday_name = cells[i - 1].get_text().strip()
+
+                        if holiday_name and len(holiday_name) < 100:
+                            holidays.append({
+                                'iso_code': iso_code,
+                                'holiday_date': parsed_date,
+                                'holiday_name': holiday_name,
+                                'holiday_description': holiday_name,
+                                'products_trading': None,
+                                'is_full_closure': True,
+                                'early_close_time': None
+                            })
 
         return holidays
 
