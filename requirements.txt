@@ -14,6 +14,4 @@ pdfplumber>=0.10.0
 # Email
 # smtplib and email are included in Python standard library
 
-# Development and testing (optional)
-pytest>=7.4.0
-pytest-cov>=4.1.0
+
